@@ -19,15 +19,176 @@ function getTransporter() {
 }
 
 /**
+ * Send 6-Digit OTP Email
+ */
+async function sendOtpEmail(userEmail, otpCode, purpose = 'verification') {
+  try {
+    const transporter = getTransporter();
+    if (!transporter) return false;
+
+    const purposeTitle =
+      purpose === 'password_reset'
+        ? 'Password Reset Request'
+        : 'Account Verification Code';
+
+    const mailOptions = {
+      from: `"Kechi Security" <${process.env.GMAIL_USER}>`,
+      to: userEmail,
+      subject: `🔐 Your Kechi OTP: ${otpCode}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; padding: 28px; border: 1px solid #f0f0f0; border-radius: 16px;">
+          <div style="text-align: center; padding-bottom: 16px; border-bottom: 2px solid #8B0000;">
+            <h1 style="color: #8B0000; margin: 0; font-size: 32px; letter-spacing: -1px;">Kechi</h1>
+            <p style="color: #C9A227; margin: 4px 0 0 0; font-size: 13px; font-weight: bold; letter-spacing: 1px;">PRINT IT. FRAME IT. LOVE IT.</p>
+          </div>
+
+          <div style="padding: 24px 0; text-align: center;">
+            <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">${purposeTitle}</h2>
+            <p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 24px;">
+              Use the 6-digit verification code below to proceed with your request. This code is valid for <strong>10 minutes</strong>.
+            </p>
+
+            <div style="background: #FFF5F5; border: 2px dashed #8B0000; padding: 18px; border-radius: 12px; display: inline-block; min-width: 200px;">
+              <span style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #8B0000; font-family: monospace;">${otpCode}</span>
+            </div>
+
+            <p style="color: #888; font-size: 12px; margin-top: 24px; line-height: 1.4;">
+              If you didn't request this code, please ignore this email or contact support if you suspect unauthorized activity.
+            </p>
+          </div>
+
+          <div style="text-align: center; color: #aaa; font-size: 11px; border-top: 1px solid #eee; padding-top: 16px;">
+            © ${new Date().getFullYear()} Kechi Inc. All rights reserved.
+          </div>
+        </div>
+      `,
+    };
+
+    console.log(`📧 Sending OTP email to ${userEmail}...`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ OTP email sent: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    console.error('❌ sendOtpEmail Error:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Send Login Notification / Security Alert Email
+ */
+async function sendLoginNotificationEmail(userEmail, userName, clientInfo = {}) {
+  try {
+    const transporter = getTransporter();
+    if (!transporter) return false;
+
+    const timeString = new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
+    const mailOptions = {
+      from: `"Kechi Security" <${process.env.GMAIL_USER}>`,
+      to: userEmail,
+      subject: `🔔 New Sign-In to Your Kechi Account`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; padding: 28px; border: 1px solid #f0f0f0; border-radius: 16px;">
+          <div style="text-align: center; padding-bottom: 16px; border-bottom: 2px solid #8B0000;">
+            <h1 style="color: #8B0000; margin: 0; font-size: 32px; letter-spacing: -1px;">Kechi</h1>
+          </div>
+
+          <div style="padding: 24px 0;">
+            <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">New Sign-In Detected</h2>
+            <p style="color: #555; font-size: 14px; line-height: 1.5;">
+              Hi <strong>${userName || 'Poster Maker'}</strong>,<br/>
+              A new sign-in was just recorded for your Kechi account.
+            </p>
+
+            <div style="background: #fafafa; padding: 16px; border-radius: 10px; border-left: 4px solid #10B981; margin: 18px 0;">
+              <p style="margin: 0 0 6px 0; color: #333; font-size: 13px;"><strong>Date & Time:</strong> ${timeString} (IST)</p>
+              <p style="margin: 0 0 6px 0; color: #333; font-size: 13px;"><strong>Platform:</strong> ${clientInfo.platform || 'Mobile App / Android'}</p>
+              <p style="margin: 0; color: #333; font-size: 13px;"><strong>Account Email:</strong> ${userEmail}</p>
+            </div>
+
+            <p style="color: #777; font-size: 12px; line-height: 1.4;">
+              If this was you, no action is needed! If you did not sign in, please secure your account immediately or contact us.
+            </p>
+          </div>
+
+          <div style="text-align: center; color: #aaa; font-size: 11px; border-top: 1px solid #eee; padding-top: 16px;">
+            © ${new Date().getFullYear()} Kechi Inc. • <a href="mailto:support@kechi.app" style="color: #8B0000; text-decoration: none;">support@kechi.app</a>
+          </div>
+        </div>
+      `,
+    };
+
+    console.log(`📧 Sending Login notification to ${userEmail}...`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Login notification sent: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    console.error('❌ sendLoginNotificationEmail Error:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Send Welcome Email on New Registration
+ */
+async function sendWelcomeEmail(userEmail, userName) {
+  try {
+    const transporter = getTransporter();
+    if (!transporter) return false;
+
+    const mailOptions = {
+      from: `"Kechi" <${process.env.GMAIL_USER}>`,
+      to: userEmail,
+      subject: `🎨 Welcome to Kechi, ${userName || 'Poster Maker'}!`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; padding: 28px; border: 1px solid #f0f0f0; border-radius: 16px;">
+          <div style="text-align: center; padding-bottom: 16px; border-bottom: 2px solid #8B0000;">
+            <h1 style="color: #8B0000; margin: 0; font-size: 32px; letter-spacing: -1px;">Kechi</h1>
+            <p style="color: #C9A227; margin: 4px 0 0 0; font-size: 13px; font-weight: bold;">Create • Express • Vibe</p>
+          </div>
+
+          <div style="padding: 24px 0; text-align: center;">
+            <h2 style="color: #1a1a1a; margin-top: 0; font-size: 22px;">Welcome to the Family! 🎉</h2>
+            <p style="color: #555; font-size: 14px; line-height: 1.6;">
+              Hey <strong>${userName || 'Friend'}</strong>, we're thrilled to have you here. With Kechi, you can turn your favorite photos, aesthetic art, and inspirational designs into museum-grade premium posters with fast doorstep delivery.
+            </p>
+
+            <div style="margin: 24px 0;">
+              <span style="display: inline-block; background: #8B0000; color: #ffffff; padding: 12px 28px; border-radius: 24px; font-weight: bold; font-size: 14px;">
+                Start Exploring Posters 🖼️
+              </span>
+            </div>
+          </div>
+
+          <div style="text-align: center; color: #aaa; font-size: 11px; border-top: 1px solid #eee; padding-top: 16px;">
+            © ${new Date().getFullYear()} Kechi Inc. • <a href="mailto:support@kechi.app" style="color: #8B0000; text-decoration: none;">support@kechi.app</a>
+          </div>
+        </div>
+      `,
+    };
+
+    console.log(`📧 Sending Welcome email to ${userEmail}...`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Welcome email sent: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    console.error('❌ sendWelcomeEmail Error:', error.message);
+    return false;
+  }
+}
+
+/**
  * Send Gmail notification to user on order placement
  */
 async function sendGmailOrderNotification(userEmail, orderData) {
   try {
     const transporter = getTransporter();
-    if (!transporter) {
-      console.log(`ℹ️ Email payload ready for ${userEmail}`);
-      return false;
-    }
+    if (!transporter) return false;
 
     const { _id, orderId, trackingCode, grandTotal, items, deliveryAddress } = orderData;
     const finalId = trackingCode || orderId || _id || 'KCH-1001';
@@ -115,4 +276,9 @@ async function sendGmailOrderNotification(userEmail, orderData) {
   }
 }
 
-module.exports = { sendGmailOrderNotification };
+module.exports = {
+  sendOtpEmail,
+  sendLoginNotificationEmail,
+  sendWelcomeEmail,
+  sendGmailOrderNotification,
+};
