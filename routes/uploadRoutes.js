@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const upload = require('../middleware/uploadMiddleware');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, optionalProtect } = require('../middleware/authMiddleware');
 const { isCloudinaryConfigured, uploadBufferToCloudinary } = require('../services/cloudinaryService');
 
 const uploadDir = path.join(__dirname, '../uploads');
@@ -13,8 +13,8 @@ if (!fs.existsSync(uploadDir)) {
 
 // @desc    Upload single image (Cloudinary with local disk fallback)
 // @route   POST /api/v1/upload
-// @access  Private
-router.post('/', protect, upload.single('image'), async (req, res) => {
+// @access  Public / Optional Auth
+router.post('/', optionalProtect, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Please upload an image file' });
