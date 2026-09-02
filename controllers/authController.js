@@ -38,6 +38,17 @@ const sendOtp = async (req, res) => {
 
     const cleanEmail = email.toLowerCase().trim();
 
+    // If purpose is signup, verify email is not already taken
+    if (purpose === 'signup') {
+      const existingUser = await User.findOne({ email: cleanEmail });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'An account with this email already exists. Please log in.',
+        });
+      }
+    }
+
     // Delete any existing active OTP for this email & purpose
     await Otp.deleteMany({ email: cleanEmail, purpose });
 
@@ -203,7 +214,7 @@ const resetPassword = async (req, res) => {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, otp } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide all required fields' });
@@ -213,6 +224,25 @@ const registerUser = async (req, res) => {
     const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'An account with this email already exists' });
+    }
+
+    // If OTP is supplied, verify it
+    if (otp) {
+      const cleanOtp = otp.toString().trim();
+      const otpRecord = await Otp.findOne({
+        email: cleanEmail,
+        otp: cleanOtp,
+        purpose: { $in: ['signup', 'verification'] },
+      });
+
+      if (!otpRecord) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired OTP code. Please request a new one.',
+        });
+      }
+
+      await otpRecord.deleteOne();
     }
 
     const user = await User.create({

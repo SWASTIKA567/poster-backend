@@ -4,8 +4,8 @@ const nodemailer = require('nodemailer');
  * Configure Gmail Transporter with environment credentials
  */
 function getTransporter() {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_PASS;
+  const user = process.env.GMAIL_USER ? process.env.GMAIL_USER.trim() : null;
+  const pass = process.env.GMAIL_PASS ? process.env.GMAIL_PASS.replace(/\s+/g, '') : null;
 
   if (!user || !pass || user.includes('your_email') || pass.includes('xxxx')) {
     console.log('⚠️ Gmail SMTP credentials not fully configured in .env');
@@ -13,8 +13,14 @@ function getTransporter() {
   }
 
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    family: 4, // Force IPv4 to prevent ENETUNREACH errors on cloud hosting (Render/AWS)
     auth: { user, pass },
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
 }
 
