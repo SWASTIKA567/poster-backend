@@ -42,7 +42,7 @@ function sendViaBrevoHttps(to, subject, html, fromName = 'Kechi') {
     const apiKey = process.env.BREVO_API_KEY;
     if (!apiKey) return resolve(false);
 
-    const senderEmail = process.env.GMAIL_USER || 'support@kechi.app';
+    const senderEmail = process.env.BREVO_SENDER || process.env.GMAIL_USER || 'swastikasingh1055@gmail.com';
 
     const payload = JSON.stringify({
       sender: { name: fromName, email: senderEmail },
