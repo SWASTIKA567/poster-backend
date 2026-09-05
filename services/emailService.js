@@ -405,9 +405,77 @@ async function sendGmailOrderNotification(userEmail, orderData) {
   }
 }
 
+/**
+ * Send Order Status Update Email (Shipped / Delivered / Cancelled)
+ */
+async function sendOrderStatusEmail(userEmail, orderData, newStatus) {
+  try {
+    const cleanEmail = userEmail.toLowerCase().trim();
+    const { _id, orderId, trackingCode, grandTotal, deliveryAddress } = orderData;
+    const finalId = trackingCode || orderId || _id || 'KCH-1001';
+
+    let statusEmoji = '📦';
+    let statusHeading = `Order Status: ${newStatus}`;
+    let statusMessage = `Your Kechi order #${finalId} status has been updated to: <strong>${newStatus}</strong>.`;
+
+    if (newStatus === 'Shipped') {
+      statusEmoji = '🚚';
+      statusHeading = 'Your Order is on the Way!';
+      statusMessage = `Great news! Your order #${finalId} has been dispatched and is on its way to your doorstep.`;
+    } else if (newStatus === 'Delivered') {
+      statusEmoji = '🎉';
+      statusHeading = 'Order Delivered Successfully!';
+      statusMessage = `Your order #${finalId} has been delivered. We hope you love your new posters! Frame it with pride.`;
+    } else if (newStatus === 'Cancelled') {
+      statusEmoji = 'ℹ️';
+      statusHeading = 'Order Cancellation Notice';
+      statusMessage = `Your order #${finalId} has been cancelled. If any payment was deducted, it will be refunded within 3-5 business days.`;
+    }
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border: 1px solid #eee; border-radius: 16px;">
+        <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #8B0000;">
+          <h1 style="color: #8B0000; margin: 0; font-size: 32px; letter-spacing: -1px;">Kechi</h1>
+          <p style="color: #C9A227; margin: 5px 0 0 0; font-size: 14px; font-weight: bold;">Print it. Frame it. Love it.</p>
+        </div>
+
+        <div style="padding: 24px 0;">
+          <h2 style="color: #1a1a1a; margin-top: 0;">${statusEmoji} ${statusHeading}</h2>
+          <p style="color: #555; line-height: 1.5;">
+            Hi <strong>${deliveryAddress?.name || 'Valued Customer'}</strong>,<br/>
+            ${statusMessage}
+          </p>
+
+          <div style="background: #fdf8e6; padding: 16px; border-radius: 12px; border-left: 4px solid #C9A227; margin: 20px 0;">
+            <p style="margin: 0; color: #8B0000; font-weight: bold; font-size: 16px;">Tracking Code: ${finalId}</p>
+            <p style="margin: 6px 0 0 0; color: #333; font-size: 14px;"><strong>Current Status:</strong> <span style="background: #8B0000; color: #fff; padding: 2px 10px; border-radius: 12px; font-size: 12px;">${newStatus}</span></p>
+            <p style="margin: 6px 0 0 0; color: #555; font-size: 13px;">Total Order Value: ₹${grandTotal || 0}</p>
+          </div>
+        </div>
+
+        <div style="text-align: center; color: #999; font-size: 12px; border-top: 1px solid #eee; padding-top: 16px; margin-top: 24px;">
+          Need help with your order? Contact support at <a href="mailto:support@kechi.app" style="color: #8B0000;">support@kechi.app</a><br/>
+          © ${new Date().getFullYear()} Kechi Inc. All rights reserved.
+        </div>
+      </div>
+    `;
+
+    return await sendUnifiedEmail({
+      to: cleanEmail,
+      subject: `${statusEmoji} Kechi Order #${finalId} - ${newStatus}`,
+      html,
+      fromName: 'Kechi Orders',
+    });
+  } catch (error) {
+    console.error('❌ sendOrderStatusEmail Exception:', error.message);
+    return false;
+  }
+}
+
 module.exports = {
   sendOtpEmail,
   sendLoginNotificationEmail,
   sendWelcomeEmail,
   sendGmailOrderNotification,
+  sendOrderStatusEmail,
 };

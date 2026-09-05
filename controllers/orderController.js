@@ -1,6 +1,6 @@
 const Order = require('../models/Order');
 const CartItem = require('../models/CartItem');
-const { sendGmailOrderNotification } = require('../services/emailService');
+const { sendGmailOrderNotification, sendOrderStatusEmail } = require('../services/emailService');
 
 // @desc    Place a new order
 // @route   POST /api/v1/orders
@@ -101,6 +101,14 @@ const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
+    // Send order status email notification
+    const recipientEmail = req.user?.email || order.userEmail;
+    if (recipientEmail) {
+      sendOrderStatusEmail(recipientEmail, order.toObject(), status).catch((err) => {
+        console.error('Async order status email error:', err.message);
+      });
+    }
+
     return res.status(200).json({ success: true, order });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -127,6 +135,14 @@ const cancelOrder = async (req, res) => {
 
     order.status = 'Cancelled';
     await order.save();
+
+    // Send order cancellation email notification
+    const recipientEmail = req.user?.email || order.userEmail;
+    if (recipientEmail) {
+      sendOrderStatusEmail(recipientEmail, order.toObject(), 'Cancelled').catch((err) => {
+        console.error('Async cancel order email error:', err.message);
+      });
+    }
 
     return res.status(200).json({
       success: true,
