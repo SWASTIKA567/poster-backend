@@ -14,7 +14,18 @@ if (!fs.existsSync(uploadDir)) {
 // @desc    Upload single image (Cloudinary with local disk fallback)
 // @route   POST /api/v1/upload
 // @access  Public / Optional Auth
-router.post('/', optionalProtect, upload.single('image'), async (req, res) => {
+router.post('/', optionalProtect, (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      console.error('Multer upload middleware error:', err.message);
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'Image upload failed. Please ensure file is an image under 25MB.',
+      });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Please upload an image file' });
