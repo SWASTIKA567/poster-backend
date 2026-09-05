@@ -1,4 +1,9 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (_) {}
 
 /**
  * Configure Gmail Transporter with environment credentials
@@ -14,12 +19,18 @@ function getTransporter() {
 
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    family: 4, // Force IPv4 to prevent ENETUNREACH errors on cloud hosting (Render/AWS)
+    port: 587,
+    secure: false, // Use STARTTLS on port 587 for maximum cloud host compatibility
+    requireTLS: true,
     auth: { user, pass },
     tls: {
       rejectUnauthorized: false,
+    },
+    // Custom DNS lookup to guarantee only IPv4 addresses are returned on Render/Linux
+    lookup: (hostname, options, callback) => {
+      dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+        callback(err, address, family);
+      });
     },
   });
 }

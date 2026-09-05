@@ -6,11 +6,12 @@ const path = require('path');
 const dns = require('dns');
 require('dotenv').config();
 
-// Use Google/Cloudflare DNS to resolve MongoDB Atlas SRV records reliably on Windows
+// Prioritize IPv4 globally to prevent ENETUNREACH on cloud platforms (Render/Docker)
 try {
+  dns.setDefaultResultOrder('ipv4first');
   dns.setServers(['8.8.8.8', '1.1.1.1']);
 } catch (e) {
-  console.log('DNS setServers notice:', e.message);
+  console.log('DNS config notice:', e.message);
 }
 
 const authRoutes = require('./routes/authRoutes');
