@@ -7,7 +7,7 @@ const { sendGmailOrderNotification, sendOrderStatusEmail } = require('../service
 // @access  Private
 const placeOrder = async (req, res) => {
   try {
-    const { items, deliveryAddress, subtotal, deliveryCharge, grandTotal, paymentMethod, paymentStatus, trackingCode } = req.body;
+    const { items, deliveryAddress, subtotal, deliveryCharge, grandTotal, paymentMethod, paymentStatus, trackingCode, razorpayPaymentId, razorpayOrderId } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ success: false, message: 'No order items provided' });
@@ -27,6 +27,8 @@ const placeOrder = async (req, res) => {
       deliveryCharge: deliveryCharge || 49.0,
       grandTotal,
       paymentMethod: paymentMethod || 'Cash on Delivery',
+      razorpayPaymentId: razorpayPaymentId || null,
+      razorpayOrderId: razorpayOrderId || null,
       status: 'Pending',
     });
 
