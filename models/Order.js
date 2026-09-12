@@ -60,6 +60,26 @@ const orderSchema = new mongoose.Schema(
       enum: ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
       default: 'Pending',
     },
+    courierPartner: {
+      type: String,
+      default: 'Shadowfax',
+    },
+    waybillNumber: {
+      type: String,
+      default: null,
+    },
+    shadowfaxOrderId: {
+      type: String,
+      default: null,
+    },
+    trackingUrl: {
+      type: String,
+      default: null,
+    },
+    shippingLabelUrl: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

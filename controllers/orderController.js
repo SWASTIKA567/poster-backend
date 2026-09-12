@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const CartItem = require('../models/CartItem');
 const { sendGmailOrderNotification, sendOrderStatusEmail } = require('../services/emailService');
+const shadowfaxService = require('../services/shadowfaxService');
 
 // @desc    Place a new order
 // @route   POST /api/v1/orders
@@ -32,6 +33,19 @@ const placeOrder = async (req, res) => {
       status: 'Pending',
     });
 
+    // Automatically create Shadowfax Logistics shipment & generate Waybill (AWB)
+    try {
+      const shipment = await shadowfaxService.createShipment(order);
+      order.courierPartner = 'Shadowfax';
+      order.waybillNumber = shipment.waybillNumber;
+      order.shadowfaxOrderId = shipment.shadowfaxOrderId;
+      order.trackingUrl = shipment.trackingUrl;
+      order.shippingLabelUrl = shipment.shippingLabelUrl;
+      await order.save();
+    } catch (shipErr) {
+      console.error('Auto Shadowfax shipment generation notice:', shipErr.message);
+    }
+
     // Mark user cart items as ordered / clear cart
     await CartItem.deleteMany({ userId: req.user._id, status: 'in_cart' });
 
@@ -39,7 +53,7 @@ const placeOrder = async (req, res) => {
     if (req.user && req.user.email) {
       sendGmailOrderNotification(req.user.email, {
         ...order.toObject(),
-        trackingCode: trackingCode || `KCH-${order._id.toString().substring(18).toUpperCase()}`,
+        trackingCode: order.waybillNumber || trackingCode || `KCH-${order._id.toString().substring(18).toUpperCase()}`,
       });
     }
 
