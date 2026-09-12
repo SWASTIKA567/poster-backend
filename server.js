@@ -21,6 +21,7 @@ const addressRoutes = require('./routes/addressRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/v1/addresses', addressRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/wishlist', wishlistRoutes);
 app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/payment', paymentRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
