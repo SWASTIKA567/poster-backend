@@ -491,6 +491,57 @@ const updateFcmToken = async (req, res) => {
   }
 };
 
+// @desc    Verify Admin Credentials (Checked securely against backend ENV)
+// @route   POST /api/v1/auth/verify-admin
+// @access  Public
+const verifyAdminCredentials = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Admin email and password are required' });
+    }
+
+    const envAdminEmail = (process.env.ADMIN_EMAIL || 'swastikasingh827@gmail.com').toLowerCase().trim();
+    const envAdminSecret = (process.env.ADMIN_SECRET_KEY || 'SwasTika1055').trim();
+
+    const inputEmail = email.toLowerCase().trim();
+    const inputPassword = password.trim();
+
+    if (inputEmail === envAdminEmail && inputPassword === envAdminSecret) {
+      return res.status(200).json({
+        success: true,
+        message: 'Admin credentials verified successfully',
+        isAdmin: true,
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid Admin Credentials. Access denied.',
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Check if current logged-in user email is configured as admin
+// @route   GET /api/v1/auth/check-admin-status
+// @access  Private
+const checkAdminStatus = async (req, res) => {
+  try {
+    const envAdminEmail = (process.env.ADMIN_EMAIL || 'swastikasingh827@gmail.com').toLowerCase().trim();
+    const userEmail = (req.user?.email || '').toLowerCase().trim();
+
+    const isMatch = Boolean(userEmail && userEmail === envAdminEmail);
+    return res.status(200).json({
+      success: true,
+      isAdminEmail: isMatch,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   sendOtp,
   verifyOtp,
@@ -503,4 +554,6 @@ module.exports = {
   updateUserProfile,
   deleteUserAccount,
   updateFcmToken,
+  verifyAdminCredentials,
+  checkAdminStatus,
 };

@@ -12,6 +12,8 @@ const {
   updateUserProfile,
   deleteUserAccount,
   updateFcmToken,
+  verifyAdminCredentials,
+  checkAdminStatus,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -25,6 +27,10 @@ router.post('/reset-password', resetPassword);
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/google', googleSignIn);
+
+// Admin Authentication (Secure check against backend environment)
+router.post('/verify-admin', verifyAdminCredentials);
+router.get('/check-admin-status', protect, checkAdminStatus);
 
 // Profile & Notifications
 router.get('/profile', protect, getUserProfile);

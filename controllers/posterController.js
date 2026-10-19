@@ -1,4 +1,5 @@
 const Poster = require('../models/Poster');
+const { isCloudinaryConfigured, uploadBufferToCloudinary } = require('../services/cloudinaryService');
 
 // @desc    Get all posters (with search & category filter)
 // @route   GET /api/v1/posters
@@ -52,25 +53,41 @@ const createPoster = async (req, res) => {
     let imageUrl = req.body.imageUrl;
 
     if (req.file) {
-      imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+      if (isCloudinaryConfigured()) {
+        const cloudRes = await uploadBufferToCloudinary(req.file.buffer, 'kechi_catalog_posters');
+        imageUrl = cloudRes.secure_url;
+      } else {
+        imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+      }
     }
 
     if (!title || !imageUrl || !price) {
       return res.status(400).json({ success: false, message: 'Title, image, and price are required' });
     }
 
+    const basePrice = Number(price);
+    let parsedSizes = [
+      { label: 'A5', dimensions: '14.8 × 21 cm', price: Math.round(basePrice * 0.75) || 99 },
+      { label: 'A4', dimensions: '21 × 29.7 cm', price: basePrice },
+      { label: 'A3', dimensions: '29.7 × 42 cm', price: Math.round(basePrice * 1.6) || 249 },
+    ];
+
+    if (sizes) {
+      try {
+        parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
+      } catch (err) {
+        console.warn('Sizes parse fallback to default:', err.message);
+      }
+    }
+
     const poster = await Poster.create({
-      title,
+      title: title.trim(),
       imageUrl,
-      category: category || 'General',
-      price: Number(price),
+      category: category ? category.trim() : 'General',
+      price: basePrice,
       description: description || '',
-      sizes: sizes ? JSON.parse(sizes) : [
-        { label: 'A5', dimensions: '14.8 × 21 cm', price: 99 },
-        { label: 'A4', dimensions: '21 × 29.7 cm', price: 149 },
-        { label: 'A3', dimensions: '29.7 × 42 cm', price: 249 },
-      ],
-      sellerId: req.user._id,
+      sizes: parsedSizes,
+      sellerId: req.user?._id,
     });
 
     return res.status(201).json({ success: true, poster });
