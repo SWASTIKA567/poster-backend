@@ -472,6 +472,8 @@ const deleteUserAccount = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
+};
+
 // @desc    Update FCM Device Token for Push Notifications
 // @route   PATCH /api/v1/users/fcm-token
 // @access  Private
