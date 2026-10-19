@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const CartItem = require('../models/CartItem');
 const { sendGmailOrderNotification, sendOrderStatusEmail } = require('../services/emailService');
 const shadowfaxService = require('../services/shadowfaxService');
+const { sendPushToUser } = require('../services/fcmService');
 
 // @desc    Place a new order
 // @route   POST /api/v1/orders
@@ -124,6 +125,29 @@ const updateOrderStatus = async (req, res) => {
         console.error('Async order status email error:', err.message);
       });
     }
+
+    // Send real-time push notification to user's phone
+    const pushTitle = status === 'Shipped'
+      ? '🚚 Your Poster Has Been Shipped!'
+      : status === 'Delivered'
+          ? '🎉 Order Delivered!'
+          : `📦 Order Update: ${status}`;
+
+    const pushBody = status === 'Shipped'
+      ? `Order #${order.waybillNumber || order.trackingCode || order._id} is in transit!`
+      : status === 'Delivered'
+          ? `Your Kechi poster order has arrived. Enjoy your vibe!`
+          : `Your order #${order.waybillNumber || order.trackingCode || order._id} is now ${status}.`;
+
+    sendPushToUser(order.userId, {
+      title: pushTitle,
+      body: pushBody,
+      data: {
+        orderId: order._id.toString(),
+        status: status,
+        type: 'order',
+      },
+    }).catch((e) => console.error("Manual order status push error:", e.message));
 
     return res.status(200).json({ success: true, order });
   } catch (error) {

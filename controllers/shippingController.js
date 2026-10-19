@@ -1,6 +1,7 @@
-﻿const Order = require("../models/Order");
+const Order = require("../models/Order");
 const shadowfaxService = require("../services/shadowfaxService");
 const { sendOrderStatusEmail } = require("../services/emailService");
+const { sendPushToUser } = require("../services/fcmService");
 
 // @desc    Check Pincode Serviceability
 // @route   GET /api/v1/shipping/check-pincode/:pincode
@@ -118,6 +119,29 @@ const shadowfaxWebhook = async (req, res) => {
           console.error("Webhook status email error:", e.message)
         );
       }
+
+      // Send real-time push notification to user's phone
+      const pushTitle = newStatus === 'Shipped'
+        ? '🚚 Your Poster Has Been Shipped!'
+        : newStatus === 'Delivered'
+            ? '🎉 Order Delivered!'
+            : `📦 Order Update: ${newStatus}`;
+
+      const pushBody = newStatus === 'Shipped'
+        ? `Order #${order.waybillNumber || order.trackingCode || order._id} is in transit via Shadowfax!`
+        : newStatus === 'Delivered'
+            ? `Your Kechi poster order has arrived. Enjoy your vibe!`
+            : `Your order #${order.waybillNumber || order.trackingCode || order._id} is now ${newStatus}.`;
+
+      sendPushToUser(order.userId, {
+        title: pushTitle,
+        body: pushBody,
+        data: {
+          orderId: order._id.toString(),
+          status: newStatus,
+          type: 'order',
+        },
+      }).catch((e) => console.error("Webhook push notification error:", e.message));
     }
 
     return res.status(200).json({ success: true, message: "Webhook processed" });
