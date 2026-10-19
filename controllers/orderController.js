@@ -1,6 +1,6 @@
 const Order = require('../models/Order');
 const CartItem = require('../models/CartItem');
-const { sendGmailOrderNotification, sendOrderStatusEmail } = require('../services/emailService');
+const { sendGmailOrderNotification, sendOrderStatusEmail, sendAdminNewOrderAlert } = require('../services/emailService');
 const shadowfaxService = require('../services/shadowfaxService');
 const { sendPushToUser } = require('../services/fcmService');
 
@@ -57,6 +57,14 @@ const placeOrder = async (req, res) => {
         trackingCode: order.waybillNumber || trackingCode || `KCH-${order._id.toString().substring(18).toUpperCase()}`,
       });
     }
+
+    // Send instant Admin Email Alert with direct links to download custom uploaded images
+    sendAdminNewOrderAlert({
+      ...order.toObject(),
+      userName: req.user?.name || deliveryAddress?.name || 'Customer',
+      userEmail: req.user?.email || order.userEmail || deliveryAddress?.email || '',
+      trackingCode: order.waybillNumber || trackingCode || `KCH-${order._id.toString().substring(18).toUpperCase()}`,
+    }).catch((e) => console.error('Admin order alert dispatch notice:', e.message));
 
     return res.status(201).json({ success: true, order });
   } catch (error) {

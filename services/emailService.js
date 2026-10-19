@@ -472,10 +472,87 @@ async function sendOrderStatusEmail(userEmail, orderData, newStatus) {
   }
 }
 
+/**
+ * Send Instant Notification Email to Store Owner (Admin) when an order is placed
+ * Includes Customer Name, Contact Phone, Full Address, and Direct Download Links for Custom Poster Images
+ */
+async function sendAdminNewOrderAlert(orderData) {
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.BREVO_SENDER || 'swastikasingh1055@gmail.com';
+    const { _id, orderId, trackingCode, grandTotal, paymentMethod, paymentStatus, items, deliveryAddress, userName, userEmail } = orderData;
+    const finalId = trackingCode || orderId || _id || 'KCH-1001';
+
+    const itemsHtml = (items || [])
+      .map(
+        (item, index) => `
+        <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+          <table style="width: 100%;">
+            <tr>
+              <td style="width: 90px; vertical-align: top;">
+                <img src="${item.imageUrl}" alt="Poster Preview" style="width: 80px; height: 110px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;" />
+              </td>
+              <td style="vertical-align: top; padding-left: 14px;">
+                <h4 style="margin: 0 0 6px 0; color: #1a1a1a; font-size: 15px;">Item #${index + 1}: Custom Poster</h4>
+                <p style="margin: 3px 0; color: #555; font-size: 13px;"><strong>Print Size:</strong> <span style="background: #f0f0f0; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${item.size || 'A4'}</span></p>
+                <p style="margin: 3px 0; color: #555; font-size: 13px;"><strong>Quantity:</strong> ${item.quantity || 1}</p>
+                <p style="margin: 3px 0; color: #555; font-size: 13px;"><strong>Item Price:</strong> ₹${item.totalPrice || 0}</p>
+                <div style="margin-top: 10px;">
+                  <a href="${item.imageUrl}" target="_blank" style="display: inline-block; background: #8B0000; color: #ffffff; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: bold;">
+                    📥 Download High-Res Image for Printing
+                  </a>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `
+      )
+      .join('');
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafafa; padding: 24px; border: 1px solid #eee; border-radius: 16px;">
+        <div style="background: #8B0000; color: #ffffff; padding: 18px; border-radius: 10px; text-align: center;">
+          <h2 style="margin: 0; font-size: 22px;">🚨 New Poster Print Order Received!</h2>
+          <p style="margin: 6px 0 0 0; font-size: 14px; color: #fce8e6;">Order #${finalId} • ₹${grandTotal} (${paymentMethod})</p>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 18px; margin: 18px 0;">
+          <h3 style="margin-top: 0; color: #8B0000; border-bottom: 2px solid #8B0000; padding-bottom: 6px; font-size: 15px;">👤 Customer & Shipping Details</h3>
+          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Customer Name:</strong> ${deliveryAddress?.name || userName || 'Customer'}</p>
+          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Contact Phone:</strong> <a href="tel:${deliveryAddress?.phone}" style="color: #8B0000; font-weight: bold;">${deliveryAddress?.phone || 'N/A'}</a></p>
+          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Email:</strong> ${userEmail || 'N/A'}</p>
+          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Delivery Address:</strong> ${deliveryAddress?.addressLine || ''}, ${deliveryAddress?.city || ''}, ${deliveryAddress?.state || ''} - <strong>${deliveryAddress?.pincode || ''}</strong></p>
+          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Payment:</strong> ${paymentMethod} (${paymentStatus || 'Paid/Confirmed'})</p>
+        </div>
+
+        <div style="margin: 18px 0;">
+          <h3 style="color: #1a1a1a; font-size: 16px; margin-bottom: 10px;">🖼️ Posters to Print (${(items || []).length} items):</h3>
+          ${itemsHtml}
+        </div>
+
+        <div style="text-align: center; color: #888; font-size: 11px; margin-top: 20px;">
+          Kechi Store Automated Order System • Powered by Render
+        </div>
+      </div>
+    `;
+
+    return await sendUnifiedEmail({
+      to: adminEmail,
+      subject: `🚨 [NEW ORDER] #${finalId} from ${deliveryAddress?.name || userName || 'Customer'} (₹${grandTotal})`,
+      html,
+      fromName: 'Kechi Admin Alert',
+    });
+  } catch (error) {
+    console.error('❌ sendAdminNewOrderAlert Exception:', error.message);
+    return false;
+  }
+}
+
 module.exports = {
   sendOtpEmail,
   sendLoginNotificationEmail,
   sendWelcomeEmail,
   sendGmailOrderNotification,
   sendOrderStatusEmail,
+  sendAdminNewOrderAlert,
 };
