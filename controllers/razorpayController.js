@@ -1,4 +1,4 @@
-﻿const Razorpay = require("razorpay");
+const Razorpay = require("razorpay");
 const crypto = require("crypto");
 
 const razorpay = new Razorpay({
@@ -70,4 +70,14 @@ const verifyRazorpayPayment = async (req, res) => {
   }
 };
 
-module.exports = { createRazorpayOrder, verifyRazorpayPayment };
+// @desc    Get Public Razorpay Key ID
+// @route   GET /api/v1/payment/config
+// @access  Private
+const getRazorpayConfig = async (req, res) => {
+  return res.status(200).json({
+    success: true,
+    keyId: process.env.RAZORPAY_KEY_ID || '',
+  });
+};
+
+module.exports = { createRazorpayOrder, verifyRazorpayPayment, getRazorpayConfig };
