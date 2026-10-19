@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema(
       enum: ['email', 'google'],
       default: 'email',
     },
+    fcmToken: {
+      type: String,
+      default: '',
+    },
     lastLoginAt: {
       type: Date,
       default: Date.now,

@@ -472,6 +472,21 @@ const deleteUserAccount = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
+// @desc    Update FCM Device Token for Push Notifications
+// @route   PATCH /api/v1/users/fcm-token
+// @access  Private
+const updateFcmToken = async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    if (!fcmToken) {
+      return res.status(400).json({ success: false, message: 'FCM Token is required' });
+    }
+
+    await User.findByIdAndUpdate(req.user._id, { fcmToken });
+    return res.status(200).json({ success: true, message: 'FCM token updated successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 module.exports = {
@@ -485,4 +500,5 @@ module.exports = {
   getUserProfile,
   updateUserProfile,
   deleteUserAccount,
+  updateFcmToken,
 };
