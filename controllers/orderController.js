@@ -19,6 +19,9 @@ const placeOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Delivery address is required' });
     }
 
+    const totalQuantity = (items || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
+    const calculatedDeliveryCharge = totalQuantity >= 7 ? 0.0 : (deliveryCharge !== undefined ? deliveryCharge : 39.0);
+
     const order = await Order.create({
       userId: req.user._id,
       userName: req.user?.name || deliveryAddress?.name || 'Customer',
@@ -26,7 +29,7 @@ const placeOrder = async (req, res) => {
       items,
       deliveryAddress,
       subtotal,
-      deliveryCharge: deliveryCharge || 49.0,
+      deliveryCharge: calculatedDeliveryCharge,
       grandTotal,
       paymentMethod: paymentMethod || 'Cash on Delivery',
       razorpayPaymentId: razorpayPaymentId || null,
@@ -178,6 +181,17 @@ const cancelOrder = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: `Order cannot be cancelled. Current status is "${order.status}". Only Pending orders can be cancelled.`,
+      });
+    }
+
+    // 2-Hour Automatic Cancellation Window for custom printed posters
+    const orderCreatedAt = order.createdAt ? new Date(order.createdAt).getTime() : Date.now();
+    const ageInHours = (Date.now() - orderCreatedAt) / (1000 * 60 * 60);
+
+    if (ageInHours > 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cancellation window expired. Custom posters automatically enter printing production 2 hours after order placement.',
       });
     }
 
