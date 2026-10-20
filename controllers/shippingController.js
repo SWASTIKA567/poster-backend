@@ -90,7 +90,12 @@ const shadowfaxWebhook = async (req, res) => {
     console.log("🚚 Shadowfax Webhook received:", req.body);
 
     const filter = waybill_number
-      ? { waybillNumber: waybill_number }
+      ? {
+          $or: [
+            { waybillNumber: waybill_number },
+            { 'replacementRequest.waybillNumber': waybill_number },
+          ],
+        }
       : { _id: client_order_id };
 
     const order = await Order.findOne(filter);
@@ -111,40 +116,75 @@ const shadowfaxWebhook = async (req, res) => {
 
     if (status && statusMap[status.toUpperCase()]) {
       const newStatus = statusMap[status.toUpperCase()];
-      order.status = newStatus;
-      if (newStatus === 'Delivered' && !order.deliveredAt) {
-        order.deliveredAt = new Date();
+      const isReplacement = order.replacementRequest?.waybillNumber === waybill_number;
+
+      if (isReplacement) {
+        order.replacementRequest.status = newStatus === 'Confirmed' ? 'In Production' : newStatus;
+        if (newStatus === 'Delivered') {
+          order.replacementRequest.deliveredAt = new Date();
+        } else if (newStatus === 'Shipped') {
+          order.replacementRequest.shippedAt = new Date();
+        }
+        await order.save();
+
+        // Push notification for replacement
+        if (order.userId) {
+          const repTitle = newStatus === 'Shipped'
+            ? '🚚 Replacement Poster Shipped!'
+            : newStatus === 'Delivered'
+                ? '🎉 Replacement Poster Delivered!'
+                : `📦 Replacement Update: ${newStatus}`;
+
+          const repBody = newStatus === 'Shipped'
+            ? `Your free replacement poster #${waybill_number} is out for delivery via Shadowfax!`
+            : `Your replacement order #${waybill_number} is now ${newStatus}.`;
+
+          sendPushToUser(order.userId, {
+            title: repTitle,
+            body: repBody,
+            data: {
+              orderId: order._id.toString(),
+              status: newStatus,
+              type: 'replacement',
+            },
+          }).catch((e) => console.error("Replacement webhook push error:", e.message));
+        }
+      } else {
+        order.status = newStatus;
+        if (newStatus === 'Delivered' && !order.deliveredAt) {
+          order.deliveredAt = new Date();
+        }
+        await order.save();
+
+        if (order.userEmail) {
+          sendOrderStatusEmail(order.userEmail, order.toObject(), newStatus).catch((e) =>
+            console.error("Webhook status email error:", e.message)
+          );
+        }
+
+        // Send real-time push notification to user's phone
+        const pushTitle = newStatus === 'Shipped'
+          ? '🚚 Your Poster Has Been Shipped!'
+          : newStatus === 'Delivered'
+              ? '🎉 Order Delivered!'
+              : `📦 Order Update: ${newStatus}`;
+
+        const pushBody = newStatus === 'Shipped'
+          ? `Order #${order.waybillNumber || order.trackingCode || order._id} is in transit via Shadowfax!`
+          : newStatus === 'Delivered'
+              ? `Your Kechi poster order has arrived. Enjoy your vibe!`
+              : `Your order #${order.waybillNumber || order.trackingCode || order._id} is now ${newStatus}.`;
+
+        sendPushToUser(order.userId, {
+          title: pushTitle,
+          body: pushBody,
+          data: {
+            orderId: order._id.toString(),
+            status: newStatus,
+            type: 'order',
+          },
+        }).catch((e) => console.error("Webhook push notification error:", e.message));
       }
-      await order.save();
-
-      if (order.userEmail) {
-        sendOrderStatusEmail(order.userEmail, order.toObject(), newStatus).catch((e) =>
-          console.error("Webhook status email error:", e.message)
-        );
-      }
-
-      // Send real-time push notification to user's phone
-      const pushTitle = newStatus === 'Shipped'
-        ? '🚚 Your Poster Has Been Shipped!'
-        : newStatus === 'Delivered'
-            ? '🎉 Order Delivered!'
-            : `📦 Order Update: ${newStatus}`;
-
-      const pushBody = newStatus === 'Shipped'
-        ? `Order #${order.waybillNumber || order.trackingCode || order._id} is in transit via Shadowfax!`
-        : newStatus === 'Delivered'
-            ? `Your Kechi poster order has arrived. Enjoy your vibe!`
-            : `Your order #${order.waybillNumber || order.trackingCode || order._id} is now ${newStatus}.`;
-
-      sendPushToUser(order.userId, {
-        title: pushTitle,
-        body: pushBody,
-        data: {
-          orderId: order._id.toString(),
-          status: newStatus,
-          type: 'order',
-        },
-      }).catch((e) => console.error("Webhook push notification error:", e.message));
     }
 
     return res.status(200).json({ success: true, message: "Webhook processed" });
