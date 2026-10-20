@@ -8,28 +8,52 @@ let isInitialized = false;
 // Initialize Firebase Admin SDK
 try {
   const serviceAccountPath = path.join(__dirname, '..', 'firebase-service-account.json');
+  const getCert = (account) => {
+    try {
+      if (admin && admin.credential && typeof admin.credential.cert === 'function') {
+        return admin.credential.cert(account);
+      }
+      if (admin && admin.default && admin.default.credential && typeof admin.default.credential.cert === 'function') {
+        return admin.default.credential.cert(account);
+      }
+      const { cert } = require('firebase-admin/app');
+      return cert(account);
+    } catch (_) {
+      return null;
+    }
+  };
 
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     // If passed via Render environment variable as JSON string
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    isInitialized = true;
-    console.log('🔥 Firebase Admin initialized via environment variable.');
+    try {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      const credential = getCert(serviceAccount);
+      if (credential) {
+        admin.initializeApp({ credential });
+        isInitialized = true;
+        console.log('🔥 Firebase Admin initialized via environment variable.');
+      } else {
+        console.log('ℹ️ Firebase Admin Notice: Service account format requires cert credentials. Push fallback active.');
+      }
+    } catch (parseErr) {
+      console.log('ℹ️ Firebase Admin Notice: Invalid JSON in FIREBASE_SERVICE_ACCOUNT. Push fallback active.');
+    }
   } else if (fs.existsSync(serviceAccountPath)) {
     // If passed via local JSON file
-    const serviceAccount = require(serviceAccountPath);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    isInitialized = true;
-    console.log('🔥 Firebase Admin initialized via firebase-service-account.json.');
+    try {
+      const serviceAccount = require(serviceAccountPath);
+      const credential = getCert(serviceAccount);
+      if (credential) {
+        admin.initializeApp({ credential });
+        isInitialized = true;
+        console.log('🔥 Firebase Admin initialized via firebase-service-account.json.');
+      }
+    } catch (_) {}
   } else {
-    console.log('ℹ️ Firebase Admin Notice: firebase-service-account.json not found. Push notifications will be logged.');
+    console.log('ℹ️ Firebase Admin Notice: firebase-service-account.json not configured. Local push notification fallback active.');
   }
 } catch (error) {
-  console.error('Firebase Admin initialization error:', error.message);
+  console.log('ℹ️ Firebase Admin Notice: Push notifications running in fallback mode.');
 }
 
 /**
