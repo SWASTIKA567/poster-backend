@@ -112,6 +112,9 @@ const shadowfaxWebhook = async (req, res) => {
     if (status && statusMap[status.toUpperCase()]) {
       const newStatus = statusMap[status.toUpperCase()];
       order.status = newStatus;
+      if (newStatus === 'Delivered' && !order.deliveredAt) {
+        order.deliveredAt = new Date();
+      }
       await order.save();
 
       if (order.userEmail) {

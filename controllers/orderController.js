@@ -1,6 +1,6 @@
 const Order = require('../models/Order');
 const CartItem = require('../models/CartItem');
-const { sendGmailOrderNotification, sendOrderStatusEmail, sendAdminNewOrderAlert } = require('../services/emailService');
+const { sendGmailOrderNotification, sendOrderStatusEmail, sendAdminNewOrderAlert, sendReplacementRequestEmail } = require('../services/emailService');
 const shadowfaxService = require('../services/shadowfaxService');
 const { sendPushToUser } = require('../services/fcmService');
 
@@ -119,9 +119,14 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
+    const updateData = { status };
+    if (status === 'Delivered') {
+      updateData.deliveredAt = new Date();
+    }
+
     const order = await Order.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
-      { status },
+      updateData,
       { new: true }
     );
 
@@ -216,10 +221,157 @@ const cancelOrder = async (req, res) => {
   }
 };
 
+// @desc    Submit defect replacement request with photo & issue details (within 24 hours of delivery)
+// @route   POST /api/v1/orders/:id/replacement
+// @access  Private
+const requestReplacement = async (req, res) => {
+  try {
+    const { reason, photos } = req.body;
+    const order = await Order.findOne({ _id: req.params.id, userId: req.user._id });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found.' });
+    }
+
+    if (order.status !== 'Delivered') {
+      return res.status(400).json({
+        success: false,
+        message: 'Replacement can only be requested once the order has been delivered.',
+      });
+    }
+
+    // 24-Hour window verification
+    const deliveredTime = order.deliveredAt
+      ? new Date(order.deliveredAt).getTime()
+      : (order.updatedAt ? new Date(order.updatedAt).getTime() : Date.now());
+    const hoursSinceDelivery = (Date.now() - deliveredTime) / (1000 * 60 * 60);
+
+    if (hoursSinceDelivery > 24) {
+      return res.status(400).json({
+        success: false,
+        message: 'Replacement window expired. Defective items must be reported within 24 hours of delivery per Kechi policy.',
+      });
+    }
+
+    if (order.replacementRequest && order.replacementRequest.status === 'Requested') {
+      return res.status(400).json({
+        success: false,
+        message: 'A replacement request has already been submitted for this order.',
+      });
+    }
+
+    if (!reason || reason.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a clear description of the defect or issue.',
+      });
+    }
+
+    const photoList = Array.isArray(photos) ? photos.filter(p => !!p) : (photos ? [photos] : []);
+    if (photoList.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please upload at least one photo showing the defective poster.',
+      });
+    }
+
+    order.replacementRequest = {
+      status: 'Requested',
+      reason: reason.trim(),
+      photos: photoList,
+      requestedAt: new Date(),
+    };
+
+    await order.save();
+
+    // Trigger email alert to Kechi support team
+    sendReplacementRequestEmail({
+      orderId: order._id,
+      userEmail: req.user?.email || order.userEmail,
+      userName: req.user?.name || order.deliveryAddress?.name || 'Customer',
+      reason: reason.trim(),
+      photos: photoList,
+      deliveryAddress: order.deliveryAddress,
+    }).catch((err) => {
+      console.error('Async sendReplacementRequestEmail error:', err.message);
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Replacement request submitted successfully! Our team will inspect your photos and dispatch a 100% free reprint.',
+      order,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update replacement request status and delivery tracking (Admin)
+// @route   PATCH /api/v1/orders/:id/replacement-status
+// @access  Private
+const updateReplacementStatus = async (req, res) => {
+  try {
+    const { status, waybillNumber, trackingUrl, courierPartner, adminNotes } = req.body;
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found.' });
+    }
+
+    if (!order.replacementRequest) {
+      order.replacementRequest = { status: 'None', photos: [] };
+    }
+
+    if (status) order.replacementRequest.status = status;
+    if (waybillNumber) order.replacementRequest.waybillNumber = waybillNumber;
+    if (trackingUrl) order.replacementRequest.trackingUrl = trackingUrl;
+    if (courierPartner) order.replacementRequest.courierPartner = courierPartner;
+    if (adminNotes) order.replacementRequest.adminNotes = adminNotes;
+
+    if (status === 'Approved') order.replacementRequest.approvedAt = new Date();
+    if (status === 'Shipped') order.replacementRequest.shippedAt = new Date();
+    if (status === 'Delivered') order.replacementRequest.deliveredAt = new Date();
+
+    await order.save();
+
+    // Push notification to user about replacement delivery status
+    if (order.userId) {
+      const title = status === 'Shipped'
+        ? '🚚 Replacement Poster Shipped!'
+        : status === 'Delivered'
+            ? '🎉 Replacement Poster Delivered!'
+            : `📦 Replacement Update: ${status}`;
+
+      const body = status === 'Shipped'
+        ? `Your free replacement poster is on the way via ${order.replacementRequest.courierPartner || 'Shadowfax'}!`
+        : `Status for your replacement order is now: ${status}`;
+
+      sendPushToUser(order.userId, {
+        title,
+        body,
+        data: {
+          orderId: order._id.toString(),
+          type: 'replacement',
+        },
+      }).catch((e) => console.error("Replacement push error:", e.message));
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Replacement delivery status updated to ${status}.`,
+      order,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   placeOrder,
   getUserOrders,
   getOrderById,
   updateOrderStatus,
   cancelOrder,
+  requestReplacement,
+  updateReplacementStatus,
 };

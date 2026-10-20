@@ -80,6 +80,58 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    deliveredAt: {
+      type: Date,
+      default: null,
+    },
+    replacementRequest: {
+      status: {
+        type: String,
+        enum: ['None', 'Requested', 'Approved', 'In Production', 'Shipped', 'Delivered', 'Rejected', 'Completed'],
+        default: 'None',
+      },
+      reason: {
+        type: String,
+        default: '',
+      },
+      photos: [
+        {
+          type: String,
+        },
+      ],
+      requestedAt: {
+        type: Date,
+        default: null,
+      },
+      approvedAt: {
+        type: Date,
+        default: null,
+      },
+      shippedAt: {
+        type: Date,
+        default: null,
+      },
+      deliveredAt: {
+        type: Date,
+        default: null,
+      },
+      courierPartner: {
+        type: String,
+        default: 'Shadowfax Express',
+      },
+      waybillNumber: {
+        type: String,
+        default: null,
+      },
+      trackingUrl: {
+        type: String,
+        default: null,
+      },
+      adminNotes: {
+        type: String,
+        default: '',
+      },
+    },
   },
   {
     timestamps: true,

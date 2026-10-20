@@ -669,6 +669,138 @@ async function sendAdminNewOrderAlert(orderData) {
   }
 }
 
+/**
+ * Send Replacement Request Notification to Support & Customer
+ */
+async function sendReplacementRequestEmail({
+  orderId,
+  userEmail,
+  userName,
+  reason,
+  photos = [],
+  deliveryAddress,
+}) {
+  try {
+    const finalId = orderId ? orderId.toString().slice(-8).toUpperCase() : 'N/A';
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support.kechi@gmail.com';
+
+    let photosHtml = '';
+    if (photos && photos.length > 0) {
+      photosHtml = photos
+        .map(
+          (url, idx) => `
+          <div style="display: inline-block; margin: 8px 8px 8px 0; text-align: center;">
+            <a href="${url}" target="_blank" rel="noopener noreferrer">
+              <img src="${url}" alt="Defect Photo ${idx + 1}" style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;" />
+            </a>
+            <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Photo ${idx + 1} (Tap to view)</div>
+          </div>
+        `
+        )
+        .join('');
+    } else {
+      photosHtml = '<p style="color: #6b7280; font-size: 13px;">No photos attached.</p>';
+    }
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"></head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 24px; color: #111827;">
+        <div style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="background-color: #8B0000; padding: 24px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px;">KECHI</h1>
+            <p style="color: #fca5a5; margin: 4px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Defect Replacement Request</p>
+          </div>
+          <div style="padding: 24px;">
+            <div style="padding: 12px 16px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; margin-bottom: 20px;">
+              <span style="font-size: 13px; font-weight: 700; color: #991b1b;">Order #${finalId}</span>
+              <p style="margin: 4px 0 0; font-size: 12px; color: #b91c1c;">Customer reported a defect within the 24-hour delivery window.</p>
+            </div>
+
+            <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 8px;">Reported Issue / Defect Details:</div>
+            <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 13px; color: #374151; line-height: 1.5; white-space: pre-wrap;">${reason || 'No description provided.'}</div>
+
+            <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 8px;">Attached Defect Photo(s):</div>
+            <div style="margin-bottom: 20px;">
+              ${photosHtml}
+            </div>
+
+            <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 8px;">Customer & Delivery Info:</div>
+            <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 13px;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="color: #6b7280; padding: 3px 0; width: 35%;">Name:</td><td style="font-weight: 600;">${deliveryAddress?.name || userName || 'Customer'}</td></tr>
+                <tr><td style="color: #6b7280; padding: 3px 0;">Email:</td><td style="font-weight: 600;">${userEmail || 'N/A'}</td></tr>
+                <tr><td style="color: #6b7280; padding: 3px 0;">Phone:</td><td style="font-weight: 600;">${deliveryAddress?.phone || 'N/A'}</td></tr>
+                <tr><td style="color: #6b7280; padding: 3px 0; vertical-align: top;">Address:</td><td>${deliveryAddress?.addressLine || ''}, ${deliveryAddress?.city || ''} - ${deliveryAddress?.pincode || ''}</td></tr>
+              </table>
+            </div>
+
+            <p style="font-size: 12px; color: #6b7280; margin: 0; line-height: 1.5;">
+              Per Kechi policy, customer is entitled to a 100% Free Replacement (Reprint) if defect is verified. No cash refund is applicable.
+            </p>
+          </div>
+          <div style="padding: 14px; background-color: #f3f4f6; text-align: center; font-size: 11px; color: #9ca3af;">
+            Kechi Customer Care • support.kechi@gmail.com
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // 1. Notify Support Team
+    await sendUnifiedEmail({
+      to: supportEmail,
+      subject: `[Replacement Request] Order #${finalId} - Defect Reported`,
+      html,
+      fromName: 'Kechi Replacement Bot',
+    });
+
+    // 2. Also send acknowledgment to Customer if email exists
+    if (userEmail && userEmail.includes('@') && !userEmail.includes('customer@gmail.com')) {
+      const customerHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 24px; color: #111827;">
+          <div style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <h2 style="color: #8B0000; margin: 0;">KECHI</h2>
+              <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0;">Replacement Request Received</p>
+            </div>
+            <p style="font-size: 14px; line-height: 1.5;">Hi ${deliveryAddress?.name || userName || 'there'},</p>
+            <p style="font-size: 14px; line-height: 1.5; color: #374151;">
+              We have received your defect report and photos for <strong>Order #${finalId}</strong>.
+            </p>
+            <div style="background-color: #f3f4f6; border-radius: 8px; padding: 14px; margin: 16px 0; font-size: 13px; color: #4b5563;">
+              <strong>Your Note:</strong> "${reason}"
+            </div>
+            <p style="font-size: 14px; line-height: 1.5; color: #374151;">
+              Our quality verification team will inspect the photos within 24 hours. Once verified, a <strong>100% Free Reprint</strong> will be produced and shipped to your address at zero extra cost.
+            </p>
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 12px;">
+              Questions? Reply directly or email us at support.kechi@gmail.com
+            </p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      await sendUnifiedEmail({
+        to: userEmail,
+        subject: `Replacement Request Received - Order #${finalId}`,
+        html: customerHtml,
+        fromName: 'Kechi Support',
+      });
+    }
+
+    return true;
+  } catch (err) {
+    console.error('❌ sendReplacementRequestEmail error:', err.message);
+    return false;
+  }
+}
+
 module.exports = {
   sendOtpEmail,
   sendLoginNotificationEmail,
@@ -676,4 +808,5 @@ module.exports = {
   sendGmailOrderNotification,
   sendOrderStatusEmail,
   sendAdminNewOrderAlert,
+  sendReplacementRequestEmail,
 };
