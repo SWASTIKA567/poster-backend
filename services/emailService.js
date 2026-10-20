@@ -42,7 +42,7 @@ function sendViaBrevoHttps(to, subject, html, fromName = 'Kechi') {
     const apiKey = process.env.BREVO_API_KEY;
     if (!apiKey) return resolve(false);
 
-    const senderEmail = process.env.BREVO_SENDER || process.env.GMAIL_USER || 'swastikasingh1055@gmail.com';
+    const senderEmail = process.env.BREVO_SENDER || 'support.kechi@gmail.com';
 
     const payload = JSON.stringify({
       sender: { name: fromName, email: senderEmail },
@@ -176,41 +176,55 @@ async function sendOtpEmail(userEmail, otpCode, purpose = 'verification') {
     const purposeTitle =
       purpose === 'password_reset'
         ? 'Password Reset Request'
-        : 'Account Verification Code';
+        : 'Verify Your Email Address';
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; padding: 28px; border: 1px solid #f0f0f0; border-radius: 16px;">
-        <div style="text-align: center; padding-bottom: 16px; border-bottom: 2px solid #8B0000;">
-          <h1 style="color: #8B0000; margin: 0; font-size: 32px; letter-spacing: -1px;">Kechi</h1>
-          <p style="color: #C9A227; margin: 4px 0 0 0; font-size: 13px; font-weight: bold; letter-spacing: 1px;">PRINT IT. FRAME IT. LOVE IT.</p>
-        </div>
-
-        <div style="padding: 24px 0; text-align: center;">
-          <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">${purposeTitle}</h2>
-          <p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 24px;">
-            Use the 6-digit verification code below to proceed with your request. This code is valid for <strong>10 minutes</strong>.
-          </p>
-
-          <div style="background: #FFF5F5; border: 2px dashed #8B0000; padding: 18px; border-radius: 12px; display: inline-block; min-width: 200px;">
-            <span style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #8B0000; font-family: monospace;">${otpCode}</span>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 24px 0; background-color: #f7f7f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937;">
+        <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid #f3f4f6;">
+            <div style="font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #111827; text-transform: uppercase;">Kechi</div>
+            <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: #6b7280; text-transform: uppercase; margin-top: 4px;">Premium Poster Prints</div>
           </div>
 
-          <p style="color: #888; font-size: 12px; margin-top: 24px; line-height: 1.4;">
-            If you didn't request this code, please ignore this email or contact support if you suspect unauthorized activity.
-          </p>
-        </div>
+          <div style="padding: 32px;">
+            <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">${purposeTitle}</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #4b5563; margin: 0 0 24px 0;">
+              Please use the verification code below to complete your request. For security reasons, this code will expire in <strong>10 minutes</strong>.
+            </p>
 
-        <div style="text-align: center; color: #aaa; font-size: 11px; border-top: 1px solid #eee; padding-top: 16px;">
-          © ${new Date().getFullYear()} Kechi Inc. All rights reserved.
+            <div style="text-align: center; margin: 28px 0;">
+              <div style="display: inline-block; background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 14px 28px; border-radius: 8px;">
+                <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #111827;">${otpCode}</span>
+              </div>
+            </div>
+
+            <p style="font-size: 13px; line-height: 1.5; color: #6b7280; margin: 24px 0 0 0;">
+              If you did not request this verification code, please disregard this email. Your account remains secure.
+            </p>
+          </div>
+
+          <div style="padding: 20px 32px; background-color: #fafafa; border-top: 1px solid #f3f4f6; text-align: center;">
+            <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.5;">
+              Kechi Studio • Customer Support: <a href="mailto:support.kechi@gmail.com" style="color: #4b5563; text-decoration: none;">support.kechi@gmail.com</a><br/>
+              © ${new Date().getFullYear()} Kechi. All rights reserved.
+            </p>
+          </div>
         </div>
-      </div>
+      </body>
+      </html>
     `;
 
     return await sendUnifiedEmail({
       to: cleanEmail,
-      subject: `🔐 Your Kechi OTP: ${otpCode}`,
+      subject: `Kechi verification code: ${otpCode}`,
       html,
-      fromName: 'Kechi Security',
+      fromName: 'Kechi',
     });
   } catch (error) {
     console.error('❌ sendOtpEmail Exception:', error.message);
@@ -231,38 +245,59 @@ async function sendLoginNotificationEmail(userEmail, userName, clientInfo = {}) 
     });
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; padding: 28px; border: 1px solid #f0f0f0; border-radius: 16px;">
-        <div style="text-align: center; padding-bottom: 16px; border-bottom: 2px solid #8B0000;">
-          <h1 style="color: #8B0000; margin: 0; font-size: 32px; letter-spacing: -1px;">Kechi</h1>
-        </div>
-
-        <div style="padding: 24px 0;">
-          <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">New Sign-In Detected</h2>
-          <p style="color: #555; font-size: 14px; line-height: 1.5;">
-            Hi <strong>${userName || 'Poster Maker'}</strong>,<br/>
-            A new sign-in was just recorded for your Kechi account.
-          </p>
-
-          <div style="background: #fafafa; padding: 16px; border-radius: 10px; border-left: 4px solid #10B981; margin: 18px 0;">
-            <p style="margin: 0 0 6px 0; color: #333; font-size: 13px;"><strong>Date & Time:</strong> ${timeString} (IST)</p>
-            <p style="margin: 0 0 6px 0; color: #333; font-size: 13px;"><strong>Platform:</strong> ${clientInfo.platform || 'Mobile App / Android'}</p>
-            <p style="margin: 0; color: #333; font-size: 13px;"><strong>Account Email:</strong> ${cleanEmail}</p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 24px 0; background-color: #f7f7f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937;">
+        <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid #f3f4f6;">
+            <div style="font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #111827; text-transform: uppercase;">Kechi</div>
           </div>
 
-          <p style="color: #777; font-size: 12px; line-height: 1.4;">
-            If this was you, no action is needed! If you did not sign in, please secure your account immediately or contact us.
-          </p>
-        </div>
+          <div style="padding: 32px;">
+            <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">New Account Sign-In</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #4b5563; margin: 0 0 20px 0;">
+              Hello <strong>${userName || 'Valued Customer'}</strong>,<br/>
+              A new sign-in was recorded for your Kechi account.
+            </p>
 
-        <div style="text-align: center; color: #aaa; font-size: 11px; border-top: 1px solid #eee; padding-top: 16px;">
-          © ${new Date().getFullYear()} Kechi Inc. • <a href="mailto:support@kechi.app" style="color: #8B0000; text-decoration: none;">support@kechi.app</a>
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f9fafb; border-radius: 8px; border: 1px solid #f3f4f6;">
+              <tr>
+                <td style="padding: 12px 16px; font-size: 13px; color: #6b7280; border-bottom: 1px solid #f3f4f6; width: 35%;">Date & Time</td>
+                <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #111827; border-bottom: 1px solid #f3f4f6;">${timeString} (IST)</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 16px; font-size: 13px; color: #6b7280; border-bottom: 1px solid #f3f4f6;">Device Platform</td>
+                <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #111827; border-bottom: 1px solid #f3f4f6;">${clientInfo.platform || 'Android Mobile App'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 16px; font-size: 13px; color: #6b7280;">Account Email</td>
+                <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #111827;">${cleanEmail}</td>
+              </tr>
+            </table>
+
+            <p style="font-size: 13px; line-height: 1.5; color: #6b7280; margin: 20px 0 0 0;">
+              If this was you, no action is needed. If you did not authorize this access, please change your password immediately or reach out to support.
+            </p>
+          </div>
+
+          <div style="padding: 20px 32px; background-color: #fafafa; border-top: 1px solid #f3f4f6; text-align: center;">
+            <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.5;">
+              Kechi Security • <a href="mailto:support.kechi@gmail.com" style="color: #4b5563; text-decoration: none;">support.kechi@gmail.com</a><br/>
+              © ${new Date().getFullYear()} Kechi. All rights reserved.
+            </p>
+          </div>
         </div>
-      </div>
+      </body>
+      </html>
     `;
 
     return await sendUnifiedEmail({
       to: cleanEmail,
-      subject: `🔔 New Sign-In to Your Kechi Account`,
+      subject: `Security notice: New sign-in to your Kechi account`,
       html,
       fromName: 'Kechi Security',
     });
@@ -279,34 +314,51 @@ async function sendWelcomeEmail(userEmail, userName) {
   try {
     const cleanEmail = userEmail.toLowerCase().trim();
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; padding: 28px; border: 1px solid #f0f0f0; border-radius: 16px;">
-        <div style="text-align: center; padding-bottom: 16px; border-bottom: 2px solid #8B0000;">
-          <h1 style="color: #8B0000; margin: 0; font-size: 32px; letter-spacing: -1px;">Kechi</h1>
-          <p style="color: #C9A227; margin: 4px 0 0 0; font-size: 13px; font-weight: bold;">Create • Express • Vibe</p>
-        </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 24px 0; background-color: #f7f7f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937;">
+        <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid #f3f4f6;">
+            <div style="font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #111827; text-transform: uppercase;">Kechi</div>
+            <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: #6b7280; text-transform: uppercase; margin-top: 4px;">Print It. Frame It. Love It.</div>
+          </div>
 
-        <div style="padding: 24px 0; text-align: center;">
-          <h2 style="color: #1a1a1a; margin-top: 0; font-size: 22px;">Welcome to the Family! 🎉</h2>
-          <p style="color: #555; font-size: 14px; line-height: 1.6;">
-            Hey <strong>${userName || 'Friend'}</strong>, we're thrilled to have you here. With Kechi, you can turn your favorite photos, aesthetic art, and inspirational designs into museum-grade premium posters with fast doorstep delivery.
-          </p>
+          <div style="padding: 32px; text-align: center;">
+            <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">Welcome to Kechi</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #4b5563; margin: 0 0 24px 0;">
+              Hello <strong>${userName || 'Friend'}</strong>,<br/>
+              Thank you for creating an account with Kechi. Discover premium custom posters, museum-grade canvas finishes, and prompt doorstep delivery.
+            </p>
 
-          <div style="margin: 24px 0;">
-            <span style="display: inline-block; background: #8B0000; color: #ffffff; padding: 12px 28px; border-radius: 24px; font-weight: bold; font-size: 14px;">
-              Start Exploring Posters 🖼️
-            </span>
+            <div style="margin: 28px 0;">
+              <span style="display: inline-block; background-color: #111827; color: #ffffff; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: 600; letter-spacing: 0.5px;">
+                Explore Collection in App
+              </span>
+            </div>
+
+            <p style="font-size: 13px; line-height: 1.5; color: #6b7280; margin: 0;">
+              If you have any questions or custom printing requirements, our team is always here to assist.
+            </p>
+          </div>
+
+          <div style="padding: 20px 32px; background-color: #fafafa; border-top: 1px solid #f3f4f6; text-align: center;">
+            <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.5;">
+              Customer Support: <a href="mailto:support.kechi@gmail.com" style="color: #4b5563; text-decoration: none;">support.kechi@gmail.com</a><br/>
+              © ${new Date().getFullYear()} Kechi. All rights reserved.
+            </p>
           </div>
         </div>
-
-        <div style="text-align: center; color: #aaa; font-size: 11px; border-top: 1px solid #eee; padding-top: 16px;">
-          © ${new Date().getFullYear()} Kechi Inc. • <a href="mailto:support@kechi.app" style="color: #8B0000; text-decoration: none;">support@kechi.app</a>
-        </div>
-      </div>
+      </body>
+      </html>
     `;
 
     return await sendUnifiedEmail({
       to: cleanEmail,
-      subject: `🎨 Welcome to Kechi, ${userName || 'Poster Maker'}!`,
+      subject: `Welcome to Kechi`,
       html,
       fromName: 'Kechi',
     });
@@ -322,17 +374,18 @@ async function sendWelcomeEmail(userEmail, userName) {
 async function sendGmailOrderNotification(userEmail, orderData) {
   try {
     const cleanEmail = userEmail.toLowerCase().trim();
-    const { _id, orderId, trackingCode, grandTotal, items, deliveryAddress } = orderData;
+    const { _id, orderId, trackingCode, grandTotal, items, deliveryAddress, paymentMethod } = orderData;
     const finalId = trackingCode || orderId || _id || 'KCH-1001';
 
     const itemsHtml = (items || [])
       .map(
         (item) => `
         <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">
-            <strong>Poster (${item.size || 'A4'})</strong> x ${item.quantity || 1}
+          <td style="padding: 12px 14px; font-size: 13px; color: #111827; border-bottom: 1px solid #f3f4f6;">
+            <strong>Poster (${item.size || 'A4'})</strong>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">Qty: ${item.quantity || 1}</div>
           </td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
+          <td style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: #111827; border-bottom: 1px solid #f3f4f6; text-align: right;">
             ₹${item.totalPrice || 0}
           </td>
         </tr>
@@ -341,61 +394,84 @@ async function sendGmailOrderNotification(userEmail, orderData) {
       .join('');
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border: 1px solid #eee; border-radius: 16px;">
-        <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #8B0000;">
-          <h1 style="color: #8B0000; margin: 0; font-size: 32px; letter-spacing: -1px;">Kechi</h1>
-          <p style="color: #C9A227; margin: 5px 0 0 0; font-size: 14px; font-weight: bold;">Print it. Frame it. Love it.</p>
-        </div>
-
-        <div style="padding: 24px 0;">
-          <h2 style="color: #1a1a1a; margin-top: 0;">Order Confirmed! 🎉</h2>
-          <p style="color: #555; line-height: 1.5;">
-            Hi <strong>${deliveryAddress?.name || 'Valued Customer'}</strong>,<br/>
-            Thank you for ordering with Kechi! Your high-resolution poster is being prepared & sent to printing.
-          </p>
-
-          <div style="background: #fdf8e6; padding: 16px; border-radius: 12px; border-left: 4px solid #C9A227; margin: 20px 0;">
-            <p style="margin: 0; color: #8B0000; font-weight: bold; font-size: 16px;">Tracking Code: ${finalId}</p>
-            <p style="margin: 6px 0 0 0; color: #555; font-size: 13px;">Estimated Delivery: 2 - 4 Business Days</p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 24px 0; background-color: #f7f7f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937;">
+        <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid #f3f4f6;">
+            <div style="font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #111827; text-transform: uppercase;">Kechi</div>
+            <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: #6b7280; text-transform: uppercase; margin-top: 4px;">Order Confirmation & Receipt</div>
           </div>
 
-          <h3 style="color: #1a1a1a; margin-top: 25px;">Order Summary</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background: #f5f5f5; text-align: left;">
-                <th style="padding: 10px; border-radius: 6px 0 0 6px;">Item</th>
-                <th style="padding: 10px; text-align: right; border-radius: 0 6px 6px 0;">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
+          <div style="padding: 32px;">
+            <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">Thank you for your order</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #4b5563; margin: 0 0 20px 0;">
+              Hello <strong>${deliveryAddress?.name || 'Valued Customer'}</strong>,<br/>
+              Your order has been confirmed and is now being queued for high-definition printing.
+            </p>
 
-          <div style="text-align: right; padding-top: 16px;">
-            <h3 style="margin: 0; color: #8B0000; font-size: 20px;">Total Paid: ₹${grandTotal}</h3>
+            <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="font-size: 13px; color: #6b7280; padding-bottom: 6px;">Order Reference:</td>
+                  <td style="font-size: 13px; font-weight: 700; color: #111827; text-align: right; padding-bottom: 6px;">${finalId}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 13px; color: #6b7280; padding-bottom: 6px;">Payment Method:</td>
+                  <td style="font-size: 13px; font-weight: 600; color: #111827; text-align: right; padding-bottom: 6px;">${paymentMethod || 'Online Payment'}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 13px; color: #6b7280;">Estimated Delivery:</td>
+                  <td style="font-size: 13px; font-weight: 600; color: #111827; text-align: right;">2 - 4 Business Days</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="margin: 24px 0 12px 0; font-size: 14px; font-weight: 700; color: #111827;">Order Details</div>
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #f3f4f6; border-radius: 8px;">
+              <thead>
+                <tr style="background-color: #f9fafb; text-align: left;">
+                  <th style="padding: 10px 14px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase;">Item</th>
+                  <th style="padding: 10px 14px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+                <tr style="background-color: #f9fafb;">
+                  <td style="padding: 14px; font-size: 14px; font-weight: 700; color: #111827;">Total Paid</td>
+                  <td style="padding: 14px; font-size: 16px; font-weight: 800; color: #111827; text-align: right;">₹${grandTotal}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="margin-top: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #f3f4f6;">
+              <div style="font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 6px;">Delivery Address</div>
+              <div style="font-size: 13px; line-height: 1.5; color: #4b5563;">
+                ${deliveryAddress?.name || ''}<br/>
+                ${deliveryAddress?.addressLine || ''}, ${deliveryAddress?.city || ''} - ${deliveryAddress?.pincode || ''}<br/>
+                Contact: ${deliveryAddress?.phone || ''}
+              </div>
+            </div>
           </div>
 
-          <div style="margin-top: 24px; padding: 16px; background: #fafafa; border-radius: 12px; border: 1px solid #eee;">
-            <h4 style="margin: 0 0 6px 0; color: #333;">Shipping Address:</h4>
-            <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.5;">
-              ${deliveryAddress?.name || ''}<br/>
-              ${deliveryAddress?.addressLine || ''}, ${deliveryAddress?.city || ''} - ${deliveryAddress?.pincode || ''}<br/>
-              Phone: ${deliveryAddress?.phone || ''}
+          <div style="padding: 20px 32px; background-color: #fafafa; border-top: 1px solid #f3f4f6; text-align: center;">
+            <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.5;">
+              Questions about your order? Contact <a href="mailto:support.kechi@gmail.com" style="color: #4b5563; text-decoration: none;">support.kechi@gmail.com</a><br/>
+              © ${new Date().getFullYear()} Kechi. All rights reserved.
             </p>
           </div>
         </div>
-
-        <div style="text-align: center; color: #999; font-size: 12px; border-top: 1px solid #eee; padding-top: 16px; margin-top: 24px;">
-          Need help with your order? Reply to this email or contact support at <a href="mailto:support@kechi.app" style="color: #8B0000;">support@kechi.app</a><br/>
-          © ${new Date().getFullYear()} Kechi Inc. All rights reserved.
-        </div>
-      </div>
+      </body>
+      </html>
     `;
 
     return await sendUnifiedEmail({
       to: cleanEmail,
-      subject: `🎉 Kechi Order Confirmed - #${finalId}`,
+      subject: `Order confirmed: #${finalId}`,
       html,
       fromName: 'Kechi Orders',
     });
@@ -414,55 +490,73 @@ async function sendOrderStatusEmail(userEmail, orderData, newStatus) {
     const { _id, orderId, trackingCode, grandTotal, deliveryAddress } = orderData;
     const finalId = trackingCode || orderId || _id || 'KCH-1001';
 
-    let statusEmoji = '📦';
     let statusHeading = `Order Status: ${newStatus}`;
-    let statusMessage = `Your Kechi order #${finalId} status has been updated to: <strong>${newStatus}</strong>.`;
+    let statusMessage = `Your Kechi order #${finalId} status has been updated to: ${newStatus}.`;
 
     if (newStatus === 'Shipped') {
-      statusEmoji = '🚚';
-      statusHeading = 'Your Order is on the Way!';
-      statusMessage = `Great news! Your order #${finalId} has been dispatched and is on its way to your doorstep.`;
+      statusHeading = 'Your Order Has Shipped';
+      statusMessage = `Your order #${finalId} has been dispatched and is currently in transit to your delivery address.`;
     } else if (newStatus === 'Delivered') {
-      statusEmoji = '🎉';
-      statusHeading = 'Order Delivered Successfully!';
-      statusMessage = `Your order #${finalId} has been delivered. We hope you love your new posters! Frame it with pride.`;
+      statusHeading = 'Order Delivered';
+      statusMessage = `Your order #${finalId} has been successfully delivered. Thank you for choosing Kechi.`;
     } else if (newStatus === 'Cancelled') {
-      statusEmoji = 'ℹ️';
-      statusHeading = 'Order Cancellation Notice';
-      statusMessage = `Your order #${finalId} has been cancelled. If any payment was deducted, it will be refunded within 3-5 business days.`;
+      statusHeading = 'Order Cancelled';
+      statusMessage = `Your order #${finalId} has been cancelled. Any pre-authorized charges will be refunded to your original payment method within 3 to 5 business days.`;
     }
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border: 1px solid #eee; border-radius: 16px;">
-        <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #8B0000;">
-          <h1 style="color: #8B0000; margin: 0; font-size: 32px; letter-spacing: -1px;">Kechi</h1>
-          <p style="color: #C9A227; margin: 5px 0 0 0; font-size: 14px; font-weight: bold;">Print it. Frame it. Love it.</p>
-        </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 24px 0; background-color: #f7f7f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937;">
+        <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid #f3f4f6;">
+            <div style="font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #111827; text-transform: uppercase;">Kechi</div>
+            <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: #6b7280; text-transform: uppercase; margin-top: 4px;">Shipment Update</div>
+          </div>
 
-        <div style="padding: 24px 0;">
-          <h2 style="color: #1a1a1a; margin-top: 0;">${statusEmoji} ${statusHeading}</h2>
-          <p style="color: #555; line-height: 1.5;">
-            Hi <strong>${deliveryAddress?.name || 'Valued Customer'}</strong>,<br/>
-            ${statusMessage}
-          </p>
+          <div style="padding: 32px;">
+            <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">${statusHeading}</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #4b5563; margin: 0 0 20px 0;">
+              Hello <strong>${deliveryAddress?.name || 'Valued Customer'}</strong>,<br/>
+              ${statusMessage}
+            </p>
 
-          <div style="background: #fdf8e6; padding: 16px; border-radius: 12px; border-left: 4px solid #C9A227; margin: 20px 0;">
-            <p style="margin: 0; color: #8B0000; font-weight: bold; font-size: 16px;">Tracking Code: ${finalId}</p>
-            <p style="margin: 6px 0 0 0; color: #333; font-size: 14px;"><strong>Current Status:</strong> <span style="background: #8B0000; color: #fff; padding: 2px 10px; border-radius: 12px; font-size: 12px;">${newStatus}</span></p>
-            <p style="margin: 6px 0 0 0; color: #555; font-size: 13px;">Total Order Value: ₹${grandTotal || 0}</p>
+            <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="font-size: 13px; color: #6b7280; padding-bottom: 6px;">Order Reference:</td>
+                  <td style="font-size: 13px; font-weight: 700; color: #111827; text-align: right; padding-bottom: 6px;">${finalId}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 13px; color: #6b7280; padding-bottom: 6px;">Current Status:</td>
+                  <td style="font-size: 13px; font-weight: 700; color: #111827; text-align: right; padding-bottom: 6px;">${newStatus}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 13px; color: #6b7280;">Order Total:</td>
+                  <td style="font-size: 13px; font-weight: 600; color: #111827; text-align: right;">₹${grandTotal || 0}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <div style="padding: 20px 32px; background-color: #fafafa; border-top: 1px solid #f3f4f6; text-align: center;">
+            <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.5;">
+              Customer Support: <a href="mailto:support.kechi@gmail.com" style="color: #4b5563; text-decoration: none;">support.kechi@gmail.com</a><br/>
+              © ${new Date().getFullYear()} Kechi. All rights reserved.
+            </p>
           </div>
         </div>
-
-        <div style="text-align: center; color: #999; font-size: 12px; border-top: 1px solid #eee; padding-top: 16px; margin-top: 24px;">
-          Need help with your order? Contact support at <a href="mailto:support@kechi.app" style="color: #8B0000;">support@kechi.app</a><br/>
-          © ${new Date().getFullYear()} Kechi Inc. All rights reserved.
-        </div>
-      </div>
+      </body>
+      </html>
     `;
 
     return await sendUnifiedEmail({
       to: cleanEmail,
-      subject: `${statusEmoji} Kechi Order #${finalId} - ${newStatus}`,
+      subject: `Order update: #${finalId} is ${newStatus}`,
       html,
       fromName: 'Kechi Orders',
     });
@@ -474,31 +568,30 @@ async function sendOrderStatusEmail(userEmail, orderData, newStatus) {
 
 /**
  * Send Instant Notification Email to Store Owner (Admin) when an order is placed
- * Includes Customer Name, Contact Phone, Full Address, and Direct Download Links for Custom Poster Images
  */
 async function sendAdminNewOrderAlert(orderData) {
   try {
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.BREVO_SENDER || 'swastikasingh1055@gmail.com';
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.BREVO_SENDER || 'support.kechi@gmail.com';
     const { _id, orderId, trackingCode, grandTotal, paymentMethod, paymentStatus, items, deliveryAddress, userName, userEmail } = orderData;
     const finalId = trackingCode || orderId || _id || 'KCH-1001';
 
     const itemsHtml = (items || [])
       .map(
         (item, index) => `
-        <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
-          <table style="width: 100%;">
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+          <table style="width: 100%; border-collapse: collapse;">
             <tr>
-              <td style="width: 90px; vertical-align: top;">
-                <img src="${item.imageUrl}" alt="Poster Preview" style="width: 80px; height: 110px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;" />
+              <td style="width: 85px; vertical-align: top;">
+                <img src="${item.imageUrl}" alt="Poster" style="width: 75px; height: 105px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;" />
               </td>
               <td style="vertical-align: top; padding-left: 14px;">
-                <h4 style="margin: 0 0 6px 0; color: #1a1a1a; font-size: 15px;">Item #${index + 1}: Custom Poster</h4>
-                <p style="margin: 3px 0; color: #555; font-size: 13px;"><strong>Print Size:</strong> <span style="background: #f0f0f0; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${item.size || 'A4'}</span></p>
-                <p style="margin: 3px 0; color: #555; font-size: 13px;"><strong>Quantity:</strong> ${item.quantity || 1}</p>
-                <p style="margin: 3px 0; color: #555; font-size: 13px;"><strong>Item Price:</strong> ₹${item.totalPrice || 0}</p>
+                <div style="font-size: 14px; font-weight: 700; color: #111827;">Item #${index + 1}: Custom Poster</div>
+                <div style="font-size: 13px; color: #4b5563; margin-top: 4px;"><strong>Size:</strong> ${item.size || 'A4'}</div>
+                <div style="font-size: 13px; color: #4b5563; margin-top: 2px;"><strong>Quantity:</strong> ${item.quantity || 1}</div>
+                <div style="font-size: 13px; color: #4b5563; margin-top: 2px;"><strong>Price:</strong> ₹${item.totalPrice || 0}</div>
                 <div style="margin-top: 10px;">
-                  <a href="${item.imageUrl}" target="_blank" style="display: inline-block; background: #8B0000; color: #ffffff; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: bold;">
-                    📥 Download High-Res Image for Printing
+                  <a href="${item.imageUrl}" target="_blank" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;">
+                    Download Print File
                   </a>
                 </div>
               </td>
@@ -510,35 +603,63 @@ async function sendAdminNewOrderAlert(orderData) {
       .join('');
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafafa; padding: 24px; border: 1px solid #eee; border-radius: 16px;">
-        <div style="background: #8B0000; color: #ffffff; padding: 18px; border-radius: 10px; text-align: center;">
-          <h2 style="margin: 0; font-size: 22px;">🚨 New Poster Print Order Received!</h2>
-          <p style="margin: 6px 0 0 0; font-size: 14px; color: #fce8e6;">Order #${finalId} • ₹${grandTotal} (${paymentMethod})</p>
-        </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 24px 0; background-color: #f7f7f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937;">
+        <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="background-color: #111827; color: #ffffff; padding: 20px 24px;">
+            <div style="font-size: 18px; font-weight: 700;">New Order Received</div>
+            <div style="font-size: 13px; color: #9ca3af; margin-top: 4px;">Order #${finalId} • ₹${grandTotal} (${paymentMethod})</div>
+          </div>
 
-        <div style="background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 18px; margin: 18px 0;">
-          <h3 style="margin-top: 0; color: #8B0000; border-bottom: 2px solid #8B0000; padding-bottom: 6px; font-size: 15px;">👤 Customer & Shipping Details</h3>
-          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Customer Name:</strong> ${deliveryAddress?.name || userName || 'Customer'}</p>
-          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Contact Phone:</strong> <a href="tel:${deliveryAddress?.phone}" style="color: #8B0000; font-weight: bold;">${deliveryAddress?.phone || 'N/A'}</a></p>
-          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Email:</strong> ${userEmail || 'N/A'}</p>
-          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Delivery Address:</strong> ${deliveryAddress?.addressLine || ''}, ${deliveryAddress?.city || ''}, ${deliveryAddress?.state || ''} - <strong>${deliveryAddress?.pincode || ''}</strong></p>
-          <p style="margin: 5px 0; font-size: 13px; color: #333;"><strong>Payment:</strong> ${paymentMethod} (${paymentStatus || 'Paid/Confirmed'})</p>
-        </div>
+          <div style="padding: 24px;">
+            <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 12px;">Customer & Shipping Information</div>
+            <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <tr>
+                  <td style="color: #6b7280; padding: 4px 0; width: 35%;">Customer Name:</td>
+                  <td style="color: #111827; font-weight: 600; padding: 4px 0;">${deliveryAddress?.name || userName || 'Customer'}</td>
+                </tr>
+                <tr>
+                  <td style="color: #6b7280; padding: 4px 0;">Phone:</td>
+                  <td style="color: #111827; font-weight: 600; padding: 4px 0;">${deliveryAddress?.phone || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td style="color: #6b7280; padding: 4px 0;">Email:</td>
+                  <td style="color: #111827; font-weight: 600; padding: 4px 0;">${userEmail || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td style="color: #6b7280; padding: 4px 0; vertical-align: top;">Shipping Address:</td>
+                  <td style="color: #111827; line-height: 1.4; padding: 4px 0;">${deliveryAddress?.addressLine || ''}, ${deliveryAddress?.city || ''}, ${deliveryAddress?.state || ''} - <strong>${deliveryAddress?.pincode || ''}</strong></td>
+                </tr>
+                <tr>
+                  <td style="color: #6b7280; padding: 4px 0;">Payment:</td>
+                  <td style="color: #111827; font-weight: 600; padding: 4px 0;">${paymentMethod} (${paymentStatus || 'Confirmed'})</td>
+                </tr>
+              </table>
+            </div>
 
-        <div style="margin: 18px 0;">
-          <h3 style="color: #1a1a1a; font-size: 16px; margin-bottom: 10px;">🖼️ Posters to Print (${(items || []).length} items):</h3>
-          ${itemsHtml}
-        </div>
+            <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 12px;">Print Items (${(items || []).length}):</div>
+            ${itemsHtml}
+          </div>
 
-        <div style="text-align: center; color: #888; font-size: 11px; margin-top: 20px;">
-          Kechi Store Automated Order System • Powered by Render
+          <div style="padding: 16px 24px; background-color: #fafafa; border-top: 1px solid #f3f4f6; text-align: center;">
+            <p style="margin: 0; font-size: 11px; color: #9ca3af;">
+              Kechi Merchant Fulfillment Notification
+            </p>
+          </div>
         </div>
-      </div>
+      </body>
+      </html>
     `;
 
     return await sendUnifiedEmail({
       to: adminEmail,
-      subject: `🚨 [NEW ORDER] #${finalId} from ${deliveryAddress?.name || userName || 'Customer'} (₹${grandTotal})`,
+      subject: `[New Order] #${finalId} from ${deliveryAddress?.name || userName || 'Customer'} (₹${grandTotal})`,
       html,
       fromName: 'Kechi Admin Alert',
     });
