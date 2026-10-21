@@ -96,6 +96,29 @@ const createPoster = async (req, res) => {
   }
 };
 
+// @desc    Update poster (category, title, etc.)
+// @route   PUT /api/v1/posters/:id
+// @access  Private
+const updatePoster = async (req, res) => {
+  try {
+    const poster = await Poster.findById(req.params.id);
+    if (!poster) {
+      return res.status(404).json({ success: false, message: 'Poster not found' });
+    }
+
+    const { category, title, description, isAvailable } = req.body;
+    if (category) poster.category = category.trim();
+    if (title) poster.title = title.trim();
+    if (description !== undefined) poster.description = description;
+    if (isAvailable !== undefined) poster.isAvailable = isAvailable;
+
+    await poster.save();
+    return res.status(200).json({ success: true, poster });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Delete poster
 // @route   DELETE /api/v1/posters/:id
 // @access  Private
@@ -117,5 +140,6 @@ module.exports = {
   getPosters,
   getPosterById,
   createPoster,
+  updatePoster,
   deletePoster,
 };
