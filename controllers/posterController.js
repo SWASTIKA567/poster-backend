@@ -1,12 +1,12 @@
 const Poster = require('../models/Poster');
 const { isCloudinaryConfigured, uploadBufferToCloudinary } = require('../services/cloudinaryService');
 
-// @desc    Get all posters (with search & category filter)
+// @desc    Get all posters (with search, category & section filter)
 // @route   GET /api/v1/posters
 // @access  Public
 const getPosters = async (req, res) => {
   try {
-    const { search, category } = req.query;
+    const { search, category, section } = req.query;
     let query = { isAvailable: true };
 
     if (category && category !== 'All') {
@@ -17,6 +17,10 @@ const getPosters = async (req, res) => {
       query.title = { $regex: search, $options: 'i' };
     }
 
+    if (section && section !== 'all') {
+      query.$or = [{ section: section }, { section: 'both' }];
+    }
+
     const posters = await Poster.find(query).sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -24,6 +28,18 @@ const getPosters = async (req, res) => {
       count: posters.length,
       posters,
     });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get unique poster categories
+// @route   GET /api/v1/posters/categories
+// @access  Public
+const getCategories = async (req, res) => {
+  try {
+    const categories = await Poster.distinct('category', { isAvailable: true });
+    return res.status(200).json({ success: true, categories: categories.filter(Boolean) });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -49,7 +65,7 @@ const getPosterById = async (req, res) => {
 // @access  Private
 const createPoster = async (req, res) => {
   try {
-    const { title, category, price, description, sizes } = req.body;
+    const { title, category, price, description, sizes, section } = req.body;
     let imageUrl = req.body.imageUrl;
 
     if (req.file) {
@@ -80,10 +96,14 @@ const createPoster = async (req, res) => {
       }
     }
 
+    const validSections = ['explore', 'trending', 'both', 'none'];
+    const chosenSection = validSections.includes(section) ? section : 'both';
+
     const poster = await Poster.create({
       title: title.trim(),
       imageUrl,
       category: category ? category.trim() : 'General',
+      section: chosenSection,
       price: basePrice,
       description: description || '',
       sizes: parsedSizes,
@@ -96,7 +116,7 @@ const createPoster = async (req, res) => {
   }
 };
 
-// @desc    Update poster (category, title, etc.)
+// @desc    Update poster (category, title, section, etc.)
 // @route   PUT /api/v1/posters/:id
 // @access  Private
 const updatePoster = async (req, res) => {
@@ -106,11 +126,17 @@ const updatePoster = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Poster not found' });
     }
 
-    const { category, title, description, isAvailable } = req.body;
+    const { category, title, description, isAvailable, section, price } = req.body;
     if (category) poster.category = category.trim();
     if (title) poster.title = title.trim();
     if (description !== undefined) poster.description = description;
     if (isAvailable !== undefined) poster.isAvailable = isAvailable;
+    if (price !== undefined && !isNaN(price)) poster.price = Number(price);
+
+    const validSections = ['explore', 'trending', 'both', 'none'];
+    if (section && validSections.includes(section)) {
+      poster.section = section;
+    }
 
     await poster.save();
     return res.status(200).json({ success: true, poster });
@@ -138,6 +164,7 @@ const deletePoster = async (req, res) => {
 
 module.exports = {
   getPosters,
+  getCategories,
   getPosterById,
   createPoster,
   updatePoster,

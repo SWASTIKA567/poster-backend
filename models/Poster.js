@@ -15,6 +15,11 @@ const posterSchema = new mongoose.Schema(
       type: String,
       default: 'General',
     },
+    section: {
+      type: String,
+      enum: ['explore', 'trending', 'both', 'none'],
+      default: 'both',
+    },
     price: {
       type: Number,
       required: [true, 'Price is required'],

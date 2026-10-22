@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getPosters,
+  getCategories,
   getPosterById,
   createPoster,
   updatePoster,
@@ -11,6 +12,7 @@ const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
 router.get('/', getPosters);
+router.get('/categories', getCategories);
 router.get('/:id', getPosterById);
 router.post('/', protect, upload.single('image'), createPoster);
 router.put('/:id', protect, updatePoster);
