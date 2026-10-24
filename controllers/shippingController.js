@@ -2,6 +2,7 @@ const Order = require("../models/Order");
 const shadowfaxService = require("../services/shadowfaxService");
 const { sendOrderStatusEmail } = require("../services/emailService");
 const { sendPushToUser } = require("../services/fcmService");
+const crypto = require("crypto");
 
 // @desc    Check Pincode Serviceability
 // @route   GET /api/v1/shipping/check-pincode/:pincode
@@ -86,6 +87,22 @@ const trackShipment = async (req, res) => {
 // @access  Public (Called by Shadowfax servers)
 const shadowfaxWebhook = async (req, res) => {
   try {
+    // ── Signature Verification ─────────────────────────────────────────────
+    // Only verify if SHADOWFAX_WEBHOOK_SECRET is set in .env (skip in dev/staging)
+    const webhookSecret = process.env.SHADOWFAX_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const receivedSig = req.headers['x-shadowfax-signature'] || req.headers['x-sfx-signature'] || '';
+      const expectedSig = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(JSON.stringify(req.body))
+        .digest('hex');
+
+      if (!receivedSig || receivedSig !== expectedSig) {
+        console.warn('🚨 Shadowfax webhook signature mismatch — request rejected');
+        return res.status(401).json({ success: false, message: 'Invalid webhook signature' });
+      }
+    }
+
     const { waybill_number, client_order_id, status, current_location } = req.body;
     console.log("🚚 Shadowfax Webhook received:", req.body);
 
@@ -105,13 +122,13 @@ const shadowfaxWebhook = async (req, res) => {
 
     // Map Shadowfax statuses to MongoDB order statuses
     const statusMap = {
-      ASSIGNED: "Confirmed",
-      PICKED_UP: "Shipped",
-      IN_TRANSIT: "Shipped",
-      OUT_FOR_DELIVERY: "Processing",
-      DELIVERED: "Delivered",
-      CANCELLED: "Cancelled",
-      RTO: "Cancelled"
+      ASSIGNED:          "Confirmed",
+      PICKED_UP:         "Shipped",
+      IN_TRANSIT:        "Shipped",
+      OUT_FOR_DELIVERY:  "Out for Delivery",
+      DELIVERED:         "Delivered",
+      CANCELLED:         "Cancelled",
+      RTO:               "Cancelled"
     };
 
     if (status && statusMap[status.toUpperCase()]) {
@@ -130,10 +147,10 @@ const shadowfaxWebhook = async (req, res) => {
         // Push notification for replacement
         if (order.userId) {
           const repTitle = newStatus === 'Shipped'
-            ? '🚚 Replacement Poster Shipped!'
+            ? 'Replacement Poster Shipped'
             : newStatus === 'Delivered'
-                ? '🎉 Replacement Poster Delivered!'
-                : `📦 Replacement Update: ${newStatus}`;
+                ? 'Replacement Poster Delivered'
+                : `Replacement Update: ${newStatus}`;
 
           const repBody = newStatus === 'Shipped'
             ? `Your free replacement poster #${waybill_number} is out for delivery via Shadowfax!`
@@ -164,16 +181,20 @@ const shadowfaxWebhook = async (req, res) => {
 
         // Send real-time push notification to user's phone
         const pushTitle = newStatus === 'Shipped'
-          ? '🚚 Your Poster Has Been Shipped!'
-          : newStatus === 'Delivered'
-              ? '🎉 Order Delivered!'
-              : `📦 Order Update: ${newStatus}`;
+          ? 'Your Poster Has Been Shipped'
+          : newStatus === 'Out for Delivery'
+              ? 'Out for Delivery'
+              : newStatus === 'Delivered'
+                  ? 'Order Delivered'
+                  : `Order Update: ${newStatus}`;
 
         const pushBody = newStatus === 'Shipped'
           ? `Order #${order.waybillNumber || order.trackingCode || order._id} is in transit via Shadowfax!`
-          : newStatus === 'Delivered'
-              ? `Your Kechi poster order has arrived. Enjoy your vibe!`
-              : `Your order #${order.waybillNumber || order.trackingCode || order._id} is now ${newStatus}.`;
+          : newStatus === 'Out for Delivery'
+              ? `Your Kechi poster is almost there! Shadowfax rider is on the way.`
+              : newStatus === 'Delivered'
+                  ? `Your Kechi poster order has arrived. Enjoy your vibe!`
+                  : `Your order #${order.waybillNumber || order.trackingCode || order._id} is now ${newStatus}.`;
 
         sendPushToUser(order.userId, {
           title: pushTitle,

@@ -3,7 +3,8 @@ const axios = require("axios");
 const SHADOWFAX_BASE_URL = process.env.SHADOWFAX_BASE_URL || "https://dale.staging.shadowfax.in/api";
 const SHADOWFAX_API_KEY = process.env.SHADOWFAX_API_KEY;
 const SHADOWFAX_STORE_CODE = process.env.SHADOWFAX_STORE_CODE || "KECHI_MAIN_STORE";
-const SHADOWFAX_PICKUP_PINCODE = process.env.SHADOWFAX_PICKUP_PINCODE || "560068";
+// ⚠️ IMPORTANT: Set SHADOWFAX_PICKUP_PINCODE in .env to your actual Delhi-NCR store/warehouse pincode
+const SHADOWFAX_PICKUP_PINCODE = process.env.SHADOWFAX_PICKUP_PINCODE || "110001";
 
 /**
  * Check if Shadowfax is in live/configured mode or fallback mock mode

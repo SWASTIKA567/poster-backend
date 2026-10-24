@@ -3,6 +3,7 @@ const CartItem = require('../models/CartItem');
 const { sendGmailOrderNotification, sendOrderStatusEmail, sendAdminNewOrderAlert, sendReplacementRequestEmail } = require('../services/emailService');
 const shadowfaxService = require('../services/shadowfaxService');
 const { sendPushToUser } = require('../services/fcmService');
+const { isNcrRegion } = require('../utils/ncrHelper');
 
 // @desc    Place a new order
 // @route   POST /api/v1/orders
@@ -17,6 +18,17 @@ const placeOrder = async (req, res) => {
 
     if (!deliveryAddress) {
       return res.status(400).json({ success: false, message: 'Delivery address is required' });
+    }
+
+    if (!isNcrRegion({
+      state: deliveryAddress.state,
+      district: deliveryAddress.city,
+      pincode: deliveryAddress.pincode,
+    })) {
+      return res.status(400).json({
+        success: false,
+        message: 'Delivery Coming Soon! We currently deliver only across the whole region of Delhi-NCR.',
+      });
     }
 
     const totalQuantity = (items || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -110,7 +122,7 @@ const getOrderById = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const validStatuses = ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+    const validStatuses = ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
@@ -144,16 +156,20 @@ const updateOrderStatus = async (req, res) => {
 
     // Send real-time push notification to user's phone
     const pushTitle = status === 'Shipped'
-      ? '🚚 Your Poster Has Been Shipped!'
-      : status === 'Delivered'
-          ? '🎉 Order Delivered!'
-          : `📦 Order Update: ${status}`;
+      ? 'Your Poster Has Been Shipped'
+      : status === 'Out for Delivery'
+          ? 'Out for Delivery'
+          : status === 'Delivered'
+              ? 'Order Delivered'
+              : `Order Update: ${status}`;
 
     const pushBody = status === 'Shipped'
       ? `Order #${order.waybillNumber || order.trackingCode || order._id} is in transit!`
-      : status === 'Delivered'
-          ? `Your Kechi poster order has arrived. Enjoy your vibe!`
-          : `Your order #${order.waybillNumber || order.trackingCode || order._id} is now ${status}.`;
+      : status === 'Out for Delivery'
+          ? `Your Kechi poster is almost there! Shadowfax rider is on the way.`
+          : status === 'Delivered'
+              ? `Your Kechi poster order has arrived. Enjoy your vibe!`
+              : `Your order #${order.waybillNumber || order.trackingCode || order._id} is now ${status}.`;
 
     sendPushToUser(order.userId, {
       title: pushTitle,
@@ -337,10 +353,10 @@ const updateReplacementStatus = async (req, res) => {
     // Push notification to user about replacement delivery status
     if (order.userId) {
       const title = status === 'Shipped'
-        ? '🚚 Replacement Poster Shipped!'
+        ? 'Replacement Poster Shipped'
         : status === 'Delivered'
-            ? '🎉 Replacement Poster Delivered!'
-            : `📦 Replacement Update: ${status}`;
+            ? 'Replacement Poster Delivered'
+            : `Replacement Update: ${status}`;
 
       const body = status === 'Shipped'
         ? `Your free replacement poster is on the way via ${order.replacementRequest.courierPartner || 'Shadowfax'}!`

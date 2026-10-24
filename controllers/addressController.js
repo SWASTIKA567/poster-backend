@@ -1,4 +1,5 @@
 const Address = require('../models/Address');
+const { isNcrRegion } = require('../utils/ncrHelper');
 
 // @desc    Get all saved addresses for current user (default first, then newest)
 // @route   GET /api/v1/addresses
@@ -21,6 +22,13 @@ const addAddress = async (req, res) => {
 
     if (!name || !phone || !addressLine || !city || !state || !pincode) {
       return res.status(400).json({ success: false, message: 'Please fill in all address fields' });
+    }
+
+    if (!isNcrRegion({ state, district: city, pincode })) {
+      return res.status(400).json({
+        success: false,
+        message: 'Delivery Coming Soon! We currently deliver only across the whole region of Delhi-NCR.',
+      });
     }
 
     // Check if this is user's first address
